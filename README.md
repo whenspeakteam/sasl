@@ -16,5 +16,5 @@ The package may be used under the terms of the BSD 2-Clause License a copy of
 which may be found in the file [LICENSE.md][LICENSE].
 
 [rfc4422]: https://tools.ietf.org/html/rfc4422
-[issues]: https://bitbucket.org/SamWhited/sasl/issues?status=new&status=open
+[issues]: https://bitbucket.org/mellium/sasl/issues?status=new&status=open
 [LICENSE]: ./LICENSE.md
