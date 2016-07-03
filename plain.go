@@ -8,16 +8,16 @@ package sasl
 // as defined by RFC 4616. Each call to the function returns a new Mechanism
 // with its own internal state. Usually identity will be left blank to act as
 // username.
-func Plain(identity, username, password string) Mechanism {
-	return Mechanism{
-		Start: func(state State) ([]byte, error) {
+func Plain(identity, username, password string) *Mechanism {
+	return &Mechanism{
+		Start: func(state State) (bool, []byte, error) {
 			if state != Initial {
-				return nil, ErrInvalidState
+				return false, nil, ErrInvalidState
 			}
-			return []byte(identity + "\x00" + username + "\x00" + password), nil
+			return false, []byte(identity + "\x00" + username + "\x00" + password), nil
 		},
-		Next: func(challenge []byte) ([]byte, error) {
-			return nil, ErrTooManySteps
+		Next: func(state State, challenge []byte) (bool, []byte, error) {
+			return false, nil, ErrTooManySteps
 		},
 	}
 }

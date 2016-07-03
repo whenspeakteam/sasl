@@ -9,26 +9,40 @@ import (
 )
 
 type saslStep struct {
-	c []byte
-	r []byte
-	e bool
+	challenge []byte
+	resp      []byte
+	more      bool
+	err       bool
 }
 
-type saslTest []saslStep
+type saslTest struct {
+	mech  *Mechanism
+	steps []saslStep
+}
 
 func TestPlain(t *testing.T) {
-	tests := saslTest{
-		saslStep{},
-		saslStep{c: nil, r: nil, e: true},
+	tests := []saslTest{{
+		mech: Plain("Ursel", "Kurt", "xipj3plmq"),
+		steps: []saslStep{
+			saslStep{challenge: []byte{}, resp: []byte("Ursel\x00Kurt\x00xipj3plmq"), err: false, more: false},
+			saslStep{challenge: nil, resp: nil, err: true, more: false},
+		},
+	}}
+
+	for _, test := range tests {
+		for _, step := range test.steps {
+			more, err := test.mech.Step(step.challenge)
+			switch {
+			case test.mech.Err() != err:
+				t.Errorf("Mechanism internal error state was not set, got error: %v", err)
+			case (test.mech.Err() != nil) != step.err:
+				t.Errorf("Unexpected error during SASL PLAIN: %v", test.mech.Err())
+			case string(step.resp) != string(test.mech.resp):
+				t.Errorf("Got invalid challenge text during SASL PLAIN: %s expected %s", test.mech.resp, step.resp)
+			case more != step.more:
+				t.Errorf("Got unexpected value for more: %v", more)
+			}
+		}
 	}
-	p := Plain("Ursel", "Kurt", "xipj3plmq")
-	b, e := p.Step([]byte{})
-	switch {
-	case e != nil:
-		t.Error("Unexpected error during SASL PLAIN:", e)
-	case string(b) != "Ursel\x00Kurt\x00xipj3plmq":
-		t.Errorf("Got invalid challenge text during SASL PLAIN: %s", b)
-	}
-	b, e = p.Step([]byte{})
 
 }
