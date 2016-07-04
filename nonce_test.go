@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestNoncePanicsIfLenZero(t *testing.T) {
+func TestNoncePanicsIfTooShort(t *testing.T) {
 	func() {
 		defer func() {
 			if r := recover(); r == nil {
@@ -45,14 +45,6 @@ func TestNoncePanicsIfLenZero(t *testing.T) {
 
 		nonce(-1)
 	}()
-}
-
-func TestNonceLength(t *testing.T) {
-	for _, l := range []int{1, 2, 3, 16} {
-		if n := nonce(l); len(n) != l {
-			t.Errorf("Invalid length for nonce; expected %d but got %d", l, len(n))
-		}
-	}
 }
 
 type errReader struct{}

@@ -6,7 +6,7 @@ package sasl
 
 import (
 	"crypto/rand"
-	"fmt"
+	"encoding/base64"
 	"io"
 )
 
@@ -18,16 +18,18 @@ func (cryptoReader) Read(p []byte) (int, error) {
 
 var noncesrc io.Reader = cryptoReader{}
 
-// TODO(ssw): nonce generation should actually use the ranges 0x21–0x2B,
-//            0x2D–0x7E (printable ASCII). Also, Sprintf is slow.
-func nonce(n int) string {
+// Generates a nonce with n random bytes base64 encoded to ensure that it meets
+// the criteria for inclusion in a SCRAM message.
+func nonce(n int) []byte {
 	if n < 1 {
 		panic("Cannot generate zero or negative length nonce")
 	}
-	b := make([]byte, (n/2)+(n&1))
+	b := make([]byte, n)
 	if _, err := noncesrc.Read(b); err != nil {
 		panic(err)
 	}
+	val := make([]byte, base64.RawStdEncoding.EncodedLen(n))
+	base64.RawStdEncoding.Encode(val, b)
 
-	return fmt.Sprintf("%x", b)[:n]
+	return val
 }
