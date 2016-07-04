@@ -9,10 +9,11 @@ import (
 )
 
 var (
-	ErrInvalidState = errors.New("Invalid state")
-	ErrAuthn        = errors.New("Authentication error")
-	ErrAuthz        = errors.New("Authorization error")
-	ErrTooManySteps = errors.New("Step called too many times")
+	ErrInvalidState     = errors.New("Invalid state")
+	ErrInvalidChallenge = errors.New("Invalid or missing challenge")
+	ErrAuthn            = errors.New("Authentication error")
+	ErrAuthz            = errors.New("Authorization error")
+	ErrTooManySteps     = errors.New("Step called too many times")
 )
 
 // State represents the current state of a Mechanism's underlying state machine.
@@ -31,7 +32,7 @@ const (
 // goroutines.
 type Mechanism struct {
 	Name  string
-	Start func(state State) (more bool, resp []byte, err error)
+	Start func() (more bool, resp []byte, err error)
 	Next  func(state State, challenge []byte) (more bool, resp []byte, err error)
 
 	state State
@@ -49,7 +50,7 @@ func (m *Mechanism) Step(challenge []byte) (more bool, err error) {
 
 	switch m.state {
 	case Initial:
-		more, m.resp, m.err = m.Start(m.state)
+		more, m.resp, m.err = m.Start()
 		m.state = AuthTextSent
 		return more, m.err
 	case AuthTextSent:

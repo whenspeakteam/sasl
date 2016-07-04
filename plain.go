@@ -10,10 +10,8 @@ package sasl
 // username.
 func Plain(identity, username, password string) *Mechanism {
 	return &Mechanism{
-		Start: func(state State) (bool, []byte, error) {
-			if state != Initial {
-				return false, nil, ErrInvalidState
-			}
+		Name: "PLAIN",
+		Start: func() (bool, []byte, error) {
 			return false, []byte(identity + "\x00" + username + "\x00" + password), nil
 		},
 		Next: func(state State, challenge []byte) (bool, []byte, error) {
