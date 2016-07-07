@@ -5,8 +5,7 @@
 package sasl
 
 // Plain returns a Mechanism that implements the PLAIN authentication mechanism
-// as defined by RFC 4616. Each call to the function returns a new Mechanism
-// with its own internal state. Usually identity will be left blank to act as
+// as defined by RFC 4616. Usually identity will be left blank to act as
 // username.
 func Plain(identity, username, password string) *Mechanism {
 	return &Mechanism{
