@@ -95,3 +95,15 @@ func TestSasl(t *testing.T) {
 		}
 	})
 }
+
+func BenchmarkScram(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		m := scram("user", "pencil", "SCRAM-SHA-1", []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New)
+		for _, step := range testCases[1].cases[0].steps {
+			more, _ := m.Step(step.challenge)
+			if !more {
+				break
+			}
+		}
+	}
+}
