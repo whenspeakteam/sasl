@@ -81,14 +81,14 @@ var testCases = []struct {
 func TestSasl(t *testing.T) {
 	doTests(t, func(t *testing.T, test saslTest) {
 		for i, step := range test.steps {
-			more, err := test.mech.Step(step.challenge)
+			more, resp, err := test.mech.Step(step.challenge)
 			switch {
 			case test.mech.Err() != err:
 				t.Fatalf("Mechanism internal error state was not set, got error: %v", err)
 			case (test.mech.Err() != nil) != step.err:
 				t.Fatalf("Unexpected error: %v", test.mech.Err())
-			case string(step.resp) != string(test.mech.resp):
-				t.Fatalf("Got invalid challenge text during step %d:\nexpected %s\n     got %s", i+1, test.mech.resp, step.resp)
+			case string(step.resp) != string(resp):
+				t.Fatalf("Got invalid challenge text during step %d:\nexpected %s\n     got %s", i+1, resp, step.resp)
 			case more != step.more:
 				t.Fatalf("Got unexpected value for more: %v", more)
 			}
@@ -100,7 +100,7 @@ func BenchmarkScram(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		m := scram("user", "pencil", "SCRAM-SHA-1", []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New)
 		for _, step := range testCases[1].cases[0].steps {
-			more, _ := m.Step(step.challenge)
+			more, _, _ := m.Step(step.challenge)
 			if !more {
 				break
 			}
