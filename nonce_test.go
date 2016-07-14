@@ -6,8 +6,6 @@ package sasl
 
 import (
 	"errors"
-	"flag"
-	"os"
 	"testing"
 )
 
@@ -20,12 +18,6 @@ func (zeroReader) Read(p []byte) (int, error) {
 	return cap(p), nil
 }
 
-func TestMain(m *testing.M) {
-	flag.Parse()
-	noncesrc = zeroReader{}
-	os.Exit(m.Run())
-}
-
 func TestNoncePanicsIfTooShort(t *testing.T) {
 	func() {
 		defer func() {
@@ -34,7 +26,7 @@ func TestNoncePanicsIfTooShort(t *testing.T) {
 			}
 		}()
 
-		nonce(0)
+		nonce(0, cryptoReader{})
 	}()
 	func() {
 		defer func() {
@@ -43,7 +35,7 @@ func TestNoncePanicsIfTooShort(t *testing.T) {
 			}
 		}()
 
-		nonce(-1)
+		nonce(-1, cryptoReader{})
 	}()
 }
 
@@ -53,20 +45,36 @@ func (errReader) Read(p []byte) (int, error) {
 	return 0, errors.New("Expected errReader error")
 }
 
+type nopReader struct{}
+
+func (nopReader) Read(p []byte) (int, error) {
+	return 0, nil
+}
+
 func TestNoncePanicsOnErrorReadingRand(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("Expected nonce to panic if generating randomness fails")
 		}
-		noncesrc = zeroReader{}
 	}()
 
-	noncesrc = errReader{}
-	nonce(1)
+	nonce(1, errReader{})
+}
+
+func TestNoncePanicsOnIncompleteReadingRand(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expected nonce to panic if too little randomness was generated")
+		}
+	}()
+
+	nonce(1, nopReader{})
 }
 
 func BenchmarkNonce(b *testing.B) {
+	cr := cryptoReader{}
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		nonce(16)
+		nonce(16, cr)
 	}
 }

@@ -16,17 +16,19 @@ func (cryptoReader) Read(p []byte) (int, error) {
 	return rand.Read(p)
 }
 
-var noncesrc io.Reader = cryptoReader{}
-
 // Generates a nonce with n random bytes base64 encoded to ensure that it meets
 // the criteria for inclusion in a SCRAM message.
-func nonce(n int) []byte {
+func nonce(n int, r io.Reader) []byte {
 	if n < 1 {
 		panic("Cannot generate zero or negative length nonce")
 	}
 	b := make([]byte, n)
-	if _, err := noncesrc.Read(b); err != nil {
+	n2, err := r.Read(b)
+	switch {
+	case err != nil:
 		panic(err)
+	case n2 != n:
+		panic("Could not read enough randomness to generate nonce")
 	}
 	val := make([]byte, base64.RawStdEncoding.EncodedLen(n))
 	base64.RawStdEncoding.Encode(val, b)

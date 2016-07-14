@@ -160,12 +160,12 @@ func scram(username, password, name string, clientNonce []byte, fn func() hash.H
 // mechanism as defined in RFC 5802. Each call to the function returns a new
 // Mechanism with its own internal state.
 func ScramSha1(username, password string) *Mechanism {
-	return scram(username, password, "SCRAM-SHA-1", nonce(noncerandlen), sha1.New)
+	return scram(username, password, "SCRAM-SHA-1", nonce(noncerandlen, cryptoReader{}), sha1.New)
 }
 
 // ScramSha256 returns a Mechanism that implements the SCRAM-SHA-256
 // authentication mechanism as defined in RFC 7677. Each call to the function
 // returns a new Mechanism with its own internal state.
 func ScramSha256(username, password string) *Mechanism {
-	return scram(username, password, "SCRAM-SHA-256", nonce(noncerandlen), sha256.New)
+	return scram(username, password, "SCRAM-SHA-256", nonce(noncerandlen, cryptoReader{}), sha256.New)
 }
