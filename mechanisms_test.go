@@ -38,7 +38,7 @@ var testCases = []struct {
 }, {
 	name: "SCRAM",
 	cases: []saslTest{{
-		mech: scram("user", "pencil", "SCRAM-SHA-1", []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New),
+		mech: scram("user", "pencil", "SCRAM-SHA-1", []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New, nil),
 		steps: []saslStep{
 			saslStep{
 				challenge: nil,
@@ -57,7 +57,7 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		mech: scram("user", "pencil", "SCRAM-SHA-256", []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New),
+		mech: scram("user", "pencil", "SCRAM-SHA-256", []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New, nil),
 		steps: []saslStep{
 			saslStep{
 				challenge: []byte{},
@@ -98,7 +98,7 @@ func TestSasl(t *testing.T) {
 
 func BenchmarkScram(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		m := scram("user", "pencil", "SCRAM-SHA-1", []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New)
+		m := scram("user", "pencil", "SCRAM-SHA-1", []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New, nil)
 		for _, step := range testCases[1].cases[0].steps {
 			more, _, _ := m.Step(step.challenge)
 			if !more {

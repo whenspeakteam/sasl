@@ -9,6 +9,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"hash"
@@ -31,7 +32,10 @@ var (
 // The number of random bytes to generate for a nonce.
 const noncerandlen = 16
 
-func scram(username, password, name string, clientNonce []byte, fn func() hash.Hash) *Mechanism {
+func scram(username, password, name string, clientNonce []byte, fn func() hash.Hash, connstate *tls.ConnectionState) *Mechanism {
+	if connstate != nil {
+		panic("sasl: Channel binding not yet implemented")
+	}
 	iter := -1
 	var salt, nonce, clientFirstMessage, serverSignature []byte
 
@@ -160,12 +164,26 @@ func scram(username, password, name string, clientNonce []byte, fn func() hash.H
 // mechanism as defined in RFC 5802. Each call to the function returns a new
 // Mechanism with its own internal state.
 func ScramSha1(username, password string) *Mechanism {
-	return scram(username, password, "SCRAM-SHA-1", nonce(noncerandlen, cryptoReader{}), sha1.New)
+	return scram(username, password, "SCRAM-SHA-1", nonce(noncerandlen, cryptoReader{}), sha1.New, nil)
+}
+
+// ScramSha1Plus returns a Mechanism that implements the SCRAM-SHA-1-PLUS
+// authentication mechanism with channel binding. Each call to the function
+// returns a new Mechanism with its own internal state.
+func ScramSha1Plus(username, password string, connstate tls.ConnectionState) *Mechanism {
+	return scram(username, password, "SCRAM-SHA-1-PLUS", nonce(noncerandlen, cryptoReader{}), sha1.New, &connstate)
 }
 
 // ScramSha256 returns a Mechanism that implements the SCRAM-SHA-256
 // authentication mechanism as defined in RFC 7677. Each call to the function
 // returns a new Mechanism with its own internal state.
 func ScramSha256(username, password string) *Mechanism {
-	return scram(username, password, "SCRAM-SHA-256", nonce(noncerandlen, cryptoReader{}), sha256.New)
+	return scram(username, password, "SCRAM-SHA-256", nonce(noncerandlen, cryptoReader{}), sha256.New, nil)
+}
+
+// ScramSha256Plus returns a Mechanism that implements the SCRAM-SHA-256-PLUS
+// authentication mechanism with channel binding. Each call to the function
+// returns a new Mechanism with its own internal state.
+func ScramSha256Plus(username, password string, connstate tls.ConnectionState) *Mechanism {
+	return scram(username, password, "SCRAM-SHA-256", nonce(noncerandlen, cryptoReader{}), sha256.New, &connstate)
 }
