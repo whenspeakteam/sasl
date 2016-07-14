@@ -12,7 +12,6 @@ var (
 	ErrInvalidState     = errors.New("Invalid state")
 	ErrInvalidChallenge = errors.New("Invalid or missing challenge")
 	ErrAuthn            = errors.New("Authentication error")
-	ErrAuthz            = errors.New("Authorization error")
 	ErrTooManySteps     = errors.New("Step called too many times")
 )
 
