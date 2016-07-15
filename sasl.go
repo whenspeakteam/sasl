@@ -30,7 +30,7 @@ const (
 // A Mechanism is stateful and therefore should not be shared between
 // goroutines.
 type Mechanism struct {
-	Name  string
+	Names []string
 	Start func() (more bool, resp []byte, err error)
 	Next  func(state State, challenge []byte) (more bool, resp []byte, err error)
 

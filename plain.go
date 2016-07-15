@@ -9,7 +9,7 @@ package sasl
 // username.
 func Plain(identity, username, password string) *Mechanism {
 	return &Mechanism{
-		Name: "PLAIN",
+		Names: []string{"PLAIN"},
 		Start: func() (bool, []byte, error) {
 			return false, []byte(identity + "\x00" + username + "\x00" + password), nil
 		},
