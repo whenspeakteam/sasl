@@ -14,6 +14,7 @@ import (
 	"errors"
 	"hash"
 	"strconv"
+	"strings"
 
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -36,6 +37,10 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 	iter := -1
 	var salt, nonce, clientFirstMessage, serverSignature []byte
 	var gs2Header []byte
+
+	// TODO(ssw): This could probably be done faster and in one pass.
+	username = strings.Replace(username, "=", "=3D", -1)
+	username = strings.Replace(username, ",", "=2C", -1)
 
 	if authzid != "" {
 		authzid = "a=" + authzid

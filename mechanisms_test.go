@@ -114,6 +114,25 @@ var testCases = []struct {
 				err:       false, more: false,
 			},
 		},
+	}, {
+		mech: scram("", ",=,=", "password", []string{"SCRAM-SHA-1-PLUS"}, []byte("ournonce"), sha1.New, true, &tls.ConnectionState{TLSUnique: []byte("finishedmessage")}),
+		steps: []saslStep{
+			saslStep{
+				challenge: []byte{},
+				resp:      []byte(base64.StdEncoding.EncodeToString([]byte("p=tls-unique,,n==2C=3D=2C=3D,r=ournonce"))),
+				err:       false, more: true,
+			},
+			saslStep{
+				challenge: []byte(base64.StdEncoding.EncodeToString([]byte(`r=ournoncetheirnonce,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096`))),
+				resp:      []byte(base64.StdEncoding.EncodeToString([]byte(`c=cD10bHMtdW5pcXVlLCxmaW5pc2hlZG1lc3NhZ2U=,r=ournoncetheirnonce,p=wm7YvWETYFwxXrOeobaAQtbOUn8=`))),
+				err:       false, more: true,
+			},
+			saslStep{
+				challenge: []byte(base64.StdEncoding.EncodeToString([]byte(`v=/pzR+ni/RpBjkYNtdH0mR+oMA4Y=`))),
+				resp:      nil,
+				err:       false, more: false,
+			},
+		},
 	}},
 }}
 
