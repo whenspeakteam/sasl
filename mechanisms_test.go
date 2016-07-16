@@ -7,6 +7,7 @@ package sasl
 import (
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
 	"testing"
 )
@@ -57,6 +58,25 @@ var testCases = []struct {
 			},
 		},
 	}, {
+		mech: scram("", "user", "pencil", []string{"SCRAM-SHA-1-PLUS"}, []byte("16090868851744577"), sha1.New, true, &tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
+		steps: []saslStep{
+			saslStep{
+				challenge: nil,
+				resp:      []byte(base64.StdEncoding.EncodeToString([]byte(`p=tls-unique,,n=user,r=16090868851744577`))),
+				err:       false, more: true,
+			},
+			saslStep{
+				challenge: []byte(base64.StdEncoding.EncodeToString([]byte(`r=1609086885174457716090868851744577,s=QSXCR+Q6sek8bf92,i=4096`))),
+				resp:      []byte(base64.StdEncoding.EncodeToString([]byte(`c=cD10bHMtdW5pcXVlLCwAAQIDBA==,r=1609086885174457716090868851744577,p=TWsZ93ST7ELak285XIgun/ncmgc=`))),
+				err:       false, more: true,
+			},
+			saslStep{
+				challenge: []byte(base64.StdEncoding.EncodeToString([]byte(`v=yFVSsBQf4DA9XdMzpLeqS55KPbI=`))),
+				resp:      nil,
+				err:       false, more: false,
+			},
+		},
+	}, {
 		mech: scram("", "user", "pencil", []string{"SCRAM-SHA-256"}, []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New, false, nil),
 		steps: []saslStep{
 			saslStep{
@@ -75,6 +95,25 @@ var testCases = []struct {
 				err:       false, more: false,
 			},
 		},
+	}, {
+		mech: scram("admin", "user", "pencil", []string{"SCRAM-SHA-256-PLUS"}, []byte("12249535949609558"), sha256.New, true, &tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
+		steps: []saslStep{
+			saslStep{
+				challenge: []byte{},
+				resp:      []byte(base64.StdEncoding.EncodeToString([]byte("p=tls-unique,a=admin,n=user,r=12249535949609558"))),
+				err:       false, more: true,
+			},
+			saslStep{
+				challenge: []byte(base64.StdEncoding.EncodeToString([]byte(`r=12249535949609558,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096`))),
+				resp:      []byte(base64.StdEncoding.EncodeToString([]byte(`c=cD10bHMtdW5pcXVlLGE9YWRtaW4sAAECAwQ=,r=12249535949609558,p=b/zH2UdTIxrunMnuLu33ROzfCWxddLlbKbG5d/rIZYs=`))),
+				err:       false, more: true,
+			},
+			saslStep{
+				challenge: []byte(base64.StdEncoding.EncodeToString([]byte(`v=kpVveedJkum+8f/fuZpKCX2GfnUt3hUESXXriOsEcWY=`))),
+				resp:      nil,
+				err:       false, more: false,
+			},
+		},
 	}},
 }}
 
@@ -86,7 +125,7 @@ func TestSasl(t *testing.T) {
 			case test.mech.Err() != err:
 				t.Fatalf("Mechanism internal error state was not set, got error: %v", err)
 			case (test.mech.Err() != nil) != step.err:
-				t.Fatalf("Unexpected error: %v", test.mech.Err())
+				t.Fatalf("Unexpected error for step %d: %v", i+1, test.mech.Err())
 			case string(step.resp) != string(resp):
 				t.Fatalf("Got invalid challenge text during step %d:\nexpected %s\n     got %s", i+1, step.resp, resp)
 			case more != step.more:

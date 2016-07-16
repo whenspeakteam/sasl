@@ -37,6 +37,9 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 	var salt, nonce, clientFirstMessage, serverSignature []byte
 	var gs2Header []byte
 
+	if authzid != "" {
+		authzid = "a=" + authzid
+	}
 	switch {
 	case connstate == nil:
 		// We do not support channel binding
