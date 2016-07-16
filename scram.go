@@ -33,7 +33,7 @@ var (
 // The number of random bytes to generate for a nonce.
 const noncerandlen = 16
 
-func scram(authzid, username, password string, names []string, clientNonce []byte, fn func() hash.Hash, plus bool, connstate *tls.ConnectionState) *Mechanism {
+func scram(authzid, username, password string, names []string, clientNonce []byte, fn func() hash.Hash, plus bool, connstate *tls.ConnectionState) Mechanism {
 	iter := -1
 	var salt, nonce, clientFirstMessage, serverSignature []byte
 	var gs2Header []byte
@@ -77,7 +77,7 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 
 	}
 
-	return &Mechanism{
+	return Mechanism{
 		Names: names,
 		Start: func() (bool, []byte, error) {
 			// TODO(ssw): Use the correct PRECIS profile on username.
@@ -206,7 +206,7 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 // argument indicates that the server advertised support for channel binding and
 // is used to help prevent downgrade attacks. Each call to the function returns
 // a new Mechanism with its own internal state.
-func ScramSha1(username, password string, plus bool, connstate *tls.ConnectionState) *Mechanism {
+func ScramSha1(username, password string, plus bool, connstate *tls.ConnectionState) Mechanism {
 	return scram("", username, password, []string{
 		"SCRAM-SHA-1",
 		"SCRAM-SHA-1-PLUS",
@@ -219,7 +219,7 @@ func ScramSha1(username, password string, plus bool, connstate *tls.ConnectionSt
 // argument indicates that the server advertised support for channel binding and
 // is used to help prevent downgrade attacks. Each call to the function returns
 // a new Mechanism with its own internal state.
-func ScramSha256(username, password string, plus bool, connstate *tls.ConnectionState) *Mechanism {
+func ScramSha256(username, password string, plus bool, connstate *tls.ConnectionState) Mechanism {
 	return scram("", username, password, []string{
 		"SCRAM-SHA-256",
 		"SCRAM-SHA-256-PLUS",
