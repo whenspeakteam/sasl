@@ -38,7 +38,7 @@ var testCases = []struct {
 }, {
 	name: "SCRAM",
 	cases: []saslTest{{
-		mech: scram("user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New, nil),
+		mech: scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New, false, nil),
 		steps: []saslStep{
 			saslStep{
 				challenge: nil,
@@ -57,7 +57,7 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		mech: scram("user", "pencil", []string{"SCRAM-SHA-256"}, []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New, nil),
+		mech: scram("", "user", "pencil", []string{"SCRAM-SHA-256"}, []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New, false, nil),
 		steps: []saslStep{
 			saslStep{
 				challenge: []byte{},
@@ -88,7 +88,7 @@ func TestSasl(t *testing.T) {
 			case (test.mech.Err() != nil) != step.err:
 				t.Fatalf("Unexpected error: %v", test.mech.Err())
 			case string(step.resp) != string(resp):
-				t.Fatalf("Got invalid challenge text during step %d:\nexpected %s\n     got %s", i+1, resp, step.resp)
+				t.Fatalf("Got invalid challenge text during step %d:\nexpected %s\n     got %s", i+1, step.resp, resp)
 			case more != step.more:
 				t.Fatalf("Got unexpected value for more: %v", more)
 			}
@@ -98,7 +98,7 @@ func TestSasl(t *testing.T) {
 
 func BenchmarkScram(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		m := scram("user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New, nil)
+		m := scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New, false, nil)
 		for _, step := range testCases[1].cases[0].steps {
 			more, _, _ := m.Step(step.challenge)
 			if !more {

@@ -19,12 +19,12 @@ import (
 )
 
 const (
-	gs2HeaderStr = "n,,"
-	b64GS2Header = "biws"
+	gs2HeaderCBSupport         = "p=tls-unique,"
+	gs2HeaderNoServerCBSupport = "y,"
+	gs2HeaderNoCBSupport       = "n,"
 )
 
 var (
-	gs2Header      = []byte(gs2HeaderStr)
 	clientKeyInput = []byte("Client Key")
 	serverKeyInput = []byte("Server Key")
 )
@@ -32,9 +32,42 @@ var (
 // The number of random bytes to generate for a nonce.
 const noncerandlen = 16
 
-func scram(username, password string, names []string, clientNonce []byte, fn func() hash.Hash, connstate *tls.ConnectionState) *Mechanism {
+func scram(authzid, username, password string, names []string, clientNonce []byte, fn func() hash.Hash, plus bool, connstate *tls.ConnectionState) *Mechanism {
 	iter := -1
 	var salt, nonce, clientFirstMessage, serverSignature []byte
+	var gs2Header []byte
+
+	switch {
+	case connstate == nil:
+		// We do not support channel binding
+		gs2Header = []byte(gs2HeaderNoCBSupport + authzid + ",")
+	case plus:
+		// We support channel binding and the server does too
+		gs2Header = []byte(gs2HeaderCBSupport + authzid + ",")
+	case !plus:
+		// We support channel binding but the server does not
+		gs2Header = []byte(gs2HeaderNoServerCBSupport + authzid + ",")
+	}
+	var channelBinding []byte
+	if connstate != nil {
+		channelBinding = make(
+			[]byte,
+			2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(connstate.TLSUnique)),
+		)
+		channelBinding[0] = 'c'
+		channelBinding[1] = '='
+		base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, connstate.TLSUnique...))
+	} else {
+
+		channelBinding = make(
+			[]byte,
+			2+base64.StdEncoding.EncodedLen(len(gs2Header)),
+		)
+		channelBinding[0] = 'c'
+		channelBinding[1] = '='
+		base64.StdEncoding.Encode(channelBinding[2:], gs2Header)
+
+	}
 
 	return &Mechanism{
 		Names: names,
@@ -99,7 +132,9 @@ func scram(username, password string, names []string, clientNonce []byte, fn fun
 					return false, nil, errors.New("Server sent empty salt")
 				}
 
-				clientFinalMessageWithoutProof := append([]byte("c="+b64GS2Header+",r="), nonce...)
+				clientFinalMessageWithoutProof := append(channelBinding, []byte(",r=")...)
+				clientFinalMessageWithoutProof = append(clientFinalMessageWithoutProof, nonce...)
+
 				authMessage := append(clientFirstMessage, ',')
 				authMessage = append(authMessage, serverFirstMessage...)
 				authMessage = append(authMessage, ',')
@@ -157,39 +192,28 @@ func scram(username, password string, names []string, clientNonce []byte, fn fun
 	}
 }
 
-// ScramSha1 returns a Mechanism that implements the SCRAM-SHA-1 authentication
-// mechanism as defined in RFC 5802. Each call to the function returns a new
-// Mechanism with its own internal state. If you plan on supporting channel
-// binding,
-func ScramSha1(username, password string) *Mechanism {
-	return scram(username, password, []string{"SCRAM-SHA-1"}, nonce(noncerandlen, cryptoReader{}), sha1.New, nil)
-}
-
-// ScramSha1Plus returns a Mechanism that implements the SCRAM-SHA-1 and
-// SCRAM-SHA-1-PLUS authentication mechanisms. The only supported channel
-// binding type is tls-unique as defined in RFC 5929. Each call to the function
-// returns a new Mechanism with its own internal state.
-func ScramSha1Plus(username, password string, connstate tls.ConnectionState) *Mechanism {
-	return scram(username, password, []string{
+// ScramSha1 returns a Mechanism that implements the SCRAM-SHA-1 and
+// SCRAM-SHA-1-PLUS authentication mechanisms defined in RFC 5802. The only
+// supported channel binding type is tls-unique as defined in RFC 5929. The plus
+// argument indicates that the server advertised support for channel binding and
+// is used to help prevent downgrade attacks. Each call to the function returns
+// a new Mechanism with its own internal state.
+func ScramSha1(username, password string, plus bool, connstate *tls.ConnectionState) *Mechanism {
+	return scram("", username, password, []string{
 		"SCRAM-SHA-1",
 		"SCRAM-SHA-1-PLUS",
-	}, nonce(noncerandlen, cryptoReader{}), sha1.New, &connstate)
+	}, nonce(noncerandlen, cryptoReader{}), sha1.New, plus, connstate)
 }
 
-// ScramSha256 returns a Mechanism that implements the SCRAM-SHA-256
-// authentication mechanism as defined in RFC 7677. Each call to the function
-// returns a new Mechanism with its own internal state.
-func ScramSha256(username, password string) *Mechanism {
-	return scram(username, password, []string{"SCRAM-SHA-256"}, nonce(noncerandlen, cryptoReader{}), sha256.New, nil)
-}
-
-// ScramSha256Plus returns a Mechanism that implements the SCRAM-SHA-256 and
-// SCRAM-SHA-256-PLUS authentication mechanisms. The only supported channel
-// binding type is tls-unique as defined in RFC 5929. Each call to the function
-// returns a new Mechanism with its own internal state.
-func ScramSha256Plus(username, password string, connstate tls.ConnectionState) *Mechanism {
-	return scram(username, password, []string{
+// ScramSha256 returns a Mechanism that implements the SCRAM-SHA-256 and
+// SCRAM-SHA-256-PLUS authentication mechanisms defined in RFC 7677. The only
+// supported channel binding type is tls-unique as defined in RFC 5929. The plus
+// argument indicates that the server advertised support for channel binding and
+// is used to help prevent downgrade attacks. Each call to the function returns
+// a new Mechanism with its own internal state.
+func ScramSha256(username, password string, plus bool, connstate *tls.ConnectionState) *Mechanism {
+	return scram("", username, password, []string{
 		"SCRAM-SHA-256",
 		"SCRAM-SHA-256-PLUS",
-	}, nonce(noncerandlen, cryptoReader{}), sha256.New, &connstate)
+	}, nonce(noncerandlen, cryptoReader{}), sha256.New, plus, connstate)
 }
