@@ -27,8 +27,7 @@ const (
 
 // Mechanism represents a SASL mechanism.
 //
-// A Mechanism is stateful and therefore should not be shared between
-// goroutines.
+// Mechanisms must be stateless and may be shared between goroutines.
 type Mechanism struct {
 	Names []string
 	Start func() (more bool, resp []byte, err error)
