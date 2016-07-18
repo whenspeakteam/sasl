@@ -14,7 +14,11 @@ func Plain(identity, username, password string) Mechanism {
 			return false, []byte(identity + "\x00" + username + "\x00" + password), nil
 		},
 		Next: func(state State, challenge []byte) (bool, []byte, error) {
-			return false, nil, ErrTooManySteps
+			if state&Receiving == Receiving {
+				panic("sasl: Server side of PLAIN not yet implemented")
+			} else {
+				return false, nil, ErrTooManySteps
+			}
 		},
 	}
 }

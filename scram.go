@@ -92,6 +92,9 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 			if challenge == nil || len(challenge) == 0 {
 				return false, nil, ErrInvalidChallenge
 			}
+			if state&Receiving == Receiving {
+				panic("sasl: Server side of SCRAM not yet implemented")
+			}
 
 			switch state & stateMask {
 			case AuthTextSent:

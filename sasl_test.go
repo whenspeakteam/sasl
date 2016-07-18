@@ -141,10 +141,10 @@ func TestSasl(t *testing.T) {
 		for i, step := range test.steps {
 			more, resp, err := test.client.Step(step.challenge)
 			switch {
-			case test.client.Err() != err:
+			case err != nil && test.client.state&Errored != Errored:
 				t.Fatalf("Client internal error state was not set, got error: %v", err)
-			case (test.client.Err() != nil) != step.err:
-				t.Fatalf("Unexpected error for step %d: %v", i+1, test.client.Err())
+			case err == nil && test.client.state&Errored == Errored:
+				t.Fatal("Client internal error state was set, but no error was returned")
 			case string(step.resp) != string(resp):
 				t.Fatalf("Got invalid challenge text during step %d:\nexpected %s\n     got %s", i+1, step.resp, resp)
 			case more != step.more:

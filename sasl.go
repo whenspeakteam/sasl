@@ -32,9 +32,8 @@ const (
 	ResponseSent
 	ValidServerResponse
 
-	// Bit is on if the mechanism is being used by a SASL server (off if used by a
-	// client).
-	Server State = 1 << 7
+	Errored   State = 1 << 6
+	Receiving State = 1 << 7
 )
 
 // TODO(ssw): Consider the posibility of having Start return an interface{}
