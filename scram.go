@@ -9,7 +9,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"hash"
@@ -33,62 +32,53 @@ var (
 // The number of random bytes to generate for a nonce.
 const noncerandlen = 16
 
-func scram(authzid, username, password string, names []string, clientNonce []byte, fn func() hash.Hash, plus bool, connstate *tls.ConnectionState) Mechanism {
+func scram(names []string, clientNonce []byte, fn func() hash.Hash) Mechanism {
 	iter := -1
-	var salt, nonce, clientFirstMessage, serverSignature []byte
-	var gs2Header []byte
-
-	// TODO(ssw): This could probably be done faster and in one pass.
-	username = strings.Replace(username, "=", "=3D", -1)
-	username = strings.Replace(username, ",", "=2C", -1)
-
-	if authzid != "" {
-		authzid = "a=" + authzid
-	}
-	switch {
-	case connstate == nil:
-		// We do not support channel binding
-		gs2Header = []byte(gs2HeaderNoCBSupport + authzid + ",")
-	case plus:
-		// We support channel binding and the server does too
-		gs2Header = []byte(gs2HeaderCBSupport + authzid + ",")
-	case !plus:
-		// We support channel binding but the server does not
-		gs2Header = []byte(gs2HeaderNoServerCBSupport + authzid + ",")
-	}
-	var channelBinding []byte
-	if connstate != nil {
-		channelBinding = make(
-			[]byte,
-			2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(connstate.TLSUnique)),
-		)
-		channelBinding[0] = 'c'
-		channelBinding[1] = '='
-		base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, connstate.TLSUnique...))
-	} else {
-
-		channelBinding = make(
-			[]byte,
-			2+base64.StdEncoding.EncodedLen(len(gs2Header)),
-		)
-		channelBinding[0] = 'c'
-		channelBinding[1] = '='
-		base64.StdEncoding.Encode(channelBinding[2:], gs2Header)
-
-	}
+	var (
+		salt, nonce, channelBinding, gs2Header []byte
+		clientFirstMessage, serverSignature    []byte
+	)
 
 	return Mechanism{
 		Names: names,
-		Start: func() (bool, []byte, error) {
+		Start: func(c Credentials) (bool, []byte, error) {
+			creds := c.(authz)
+			// TODO(ssw): This could probably be done faster and in one pass.
+			username := strings.Replace(creds.Username, "=", "=3D", -1)
+			username = strings.Replace(username, ",", "=2C", -1)
 			// TODO(ssw): Use the correct PRECIS profile on username.
 			clientFirstMessage = append([]byte("n="+username+",r="), clientNonce...)
 
+			authzid := creds.Identity
+			if authzid != "" {
+				authzid = "a=" + authzid
+			}
+			switch {
+			case creds.ConnState == nil:
+				// We do not support channel binding
+				gs2Header = []byte(gs2HeaderNoCBSupport + authzid + ",")
+			case creds.ServerPlus:
+				// We support channel binding and the server does too
+				gs2Header = []byte(gs2HeaderCBSupport + authzid + ",")
+			case !creds.ServerPlus:
+				// We support channel binding but the server does not
+				gs2Header = []byte(gs2HeaderNoServerCBSupport + authzid + ",")
+			}
 			unencoded := append(gs2Header, clientFirstMessage...)
 			b := make([]byte, base64.StdEncoding.EncodedLen(len(unencoded)))
 			base64.StdEncoding.Encode(b, unencoded)
 			return true, b, nil
 		},
-		Next: func(state State, challenge []byte) (bool, []byte, error) {
+		Next: func(state State, c Credentials, challenge []byte) (bool, []byte, error) {
+			var creds cbauthz
+			switch ctyped := c.(type) {
+			case cbauthz:
+				creds = ctyped
+			case authz:
+				creds = cbauthz{authz: ctyped}
+			default:
+				panic("sasl: Invalid credentials provided for SCRAM")
+			}
 			if challenge == nil || len(challenge) == 0 {
 				return false, nil, ErrInvalidChallenge
 			}
@@ -140,6 +130,24 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 					return false, nil, errors.New("Server sent empty salt")
 				}
 
+				if creds.ConnState != nil {
+					channelBinding = make(
+						[]byte,
+						2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(creds.ConnState.TLSUnique)),
+					)
+					channelBinding[0] = 'c'
+					channelBinding[1] = '='
+					base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, creds.ConnState.TLSUnique...))
+				} else {
+
+					channelBinding = make(
+						[]byte,
+						2+base64.StdEncoding.EncodedLen(len(gs2Header)),
+					)
+					channelBinding[0] = 'c'
+					channelBinding[1] = '='
+					base64.StdEncoding.Encode(channelBinding[2:], gs2Header)
+				}
 				clientFinalMessageWithoutProof := append(channelBinding, []byte(",r=")...)
 				clientFinalMessageWithoutProof = append(clientFinalMessageWithoutProof, nonce...)
 
@@ -150,7 +158,7 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 
 				// TODO(ssw): Have a shared LRU cache for HMAC and hi calculations
 
-				saltedPassword := pbkdf2.Key([]byte(password), salt, iter, fn().Size(), fn)
+				saltedPassword := pbkdf2.Key([]byte(creds.Password), salt, iter, fn().Size(), fn)
 
 				h := hmac.New(fn, saltedPassword)
 				h.Write(serverKeyInput)
@@ -206,11 +214,11 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 // argument indicates that the server advertised support for channel binding and
 // is used to help prevent downgrade attacks. Each call to the function returns
 // a new Mechanism with its own internal state.
-func ScramSha1(username, password string, plus bool, connstate *tls.ConnectionState) Mechanism {
-	return scram("", username, password, []string{
+func ScramSha1() Mechanism {
+	return scram([]string{
 		"SCRAM-SHA-1",
 		"SCRAM-SHA-1-PLUS",
-	}, nonce(noncerandlen, cryptoReader{}), sha1.New, plus, connstate)
+	}, nonce(noncerandlen, cryptoReader{}), sha1.New)
 }
 
 // ScramSha256 returns a Mechanism that implements the SCRAM-SHA-256 and
@@ -219,9 +227,9 @@ func ScramSha1(username, password string, plus bool, connstate *tls.ConnectionSt
 // argument indicates that the server advertised support for channel binding and
 // is used to help prevent downgrade attacks. Each call to the function returns
 // a new Mechanism with its own internal state.
-func ScramSha256(username, password string, plus bool, connstate *tls.ConnectionState) Mechanism {
-	return scram("", username, password, []string{
+func ScramSha256() Mechanism {
+	return scram([]string{
 		"SCRAM-SHA-256",
 		"SCRAM-SHA-256-PLUS",
-	}, nonce(noncerandlen, cryptoReader{}), sha256.New, plus, connstate)
+	}, nonce(noncerandlen, cryptoReader{}), sha256.New)
 }

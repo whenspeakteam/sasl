@@ -30,7 +30,7 @@ var testCases = []struct {
 }{{
 	name: "PLAIN",
 	cases: []saslTest{{
-		client: &Client{Mechanism: Plain("Ursel", "Kurt", "xipj3plmq")},
+		client: &Client{Mechanism: Plain, Credentials: NewIdentity("Ursel", "Kurt", "xipj3plmq")},
 		steps: []saslStep{
 			saslStep{challenge: []byte{}, resp: []byte("Ursel\x00Kurt\x00xipj3plmq"), err: false, more: false},
 			saslStep{challenge: nil, resp: nil, err: true, more: false},
@@ -39,7 +39,7 @@ var testCases = []struct {
 }, {
 	name: "SCRAM",
 	cases: []saslTest{{
-		client: &Client{Mechanism: scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New, false, nil)},
+		client: &Client{Mechanism: scram([]string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New), Credentials: NewIdentity("", "user", "pencil")},
 		steps: []saslStep{
 			saslStep{
 				challenge: nil,
@@ -58,7 +58,7 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: &Client{Mechanism: scram("", "user", "pencil", []string{"SCRAM-SHA-1-PLUS"}, []byte("16090868851744577"), sha1.New, true, &tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}})},
+		client: &Client{Mechanism: scram([]string{"SCRAM-SHA-1-PLUS"}, []byte("16090868851744577"), sha1.New), Credentials: NewChannelBinding("", "user", "pencil", true, &tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}})},
 		steps: []saslStep{
 			saslStep{
 				challenge: nil,
@@ -77,7 +77,7 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: &Client{Mechanism: scram("", "user", "pencil", []string{"SCRAM-SHA-256"}, []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New, false, nil)},
+		client: &Client{Mechanism: scram([]string{"SCRAM-SHA-256"}, []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New), Credentials: NewChannelBinding("", "user", "pencil", false, nil)},
 		steps: []saslStep{
 			saslStep{
 				challenge: []byte{},
@@ -96,7 +96,7 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: &Client{Mechanism: scram("admin", "user", "pencil", []string{"SCRAM-SHA-256-PLUS"}, []byte("12249535949609558"), sha256.New, true, &tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}})},
+		client: &Client{Mechanism: scram([]string{"SCRAM-SHA-256-PLUS"}, []byte("12249535949609558"), sha256.New), Credentials: NewChannelBinding("admin", "user", "pencil", true, &tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}})},
 		steps: []saslStep{
 			saslStep{
 				challenge: []byte{},
@@ -115,7 +115,7 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: &Client{Mechanism: scram("", ",=,=", "password", []string{"SCRAM-SHA-1-PLUS"}, []byte("ournonce"), sha1.New, true, &tls.ConnectionState{TLSUnique: []byte("finishedmessage")})},
+		client: &Client{Mechanism: scram([]string{"SCRAM-SHA-1-PLUS"}, []byte("ournonce"), sha1.New), Credentials: NewChannelBinding("", ",=,=", "password", true, &tls.ConnectionState{TLSUnique: []byte("finishedmessage")})},
 		steps: []saslStep{
 			saslStep{
 				challenge: []byte{},
@@ -156,7 +156,7 @@ func TestSasl(t *testing.T) {
 
 func BenchmarkScram(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		c := &Client{Mechanism: scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New, false, nil)}
+		c := &Client{Mechanism: scram([]string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New), Credentials: NewIdentity("", "user", "pencil")}
 		for _, step := range testCases[1].cases[0].steps {
 			more, _, _ := c.Step(step.challenge)
 			if !more {

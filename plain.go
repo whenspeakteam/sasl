@@ -4,17 +4,14 @@
 
 package sasl
 
-// Plain returns a Mechanism that implements the PLAIN authentication mechanism
-// as defined by RFC 4616. Usually identity will be left blank to act as
-// username.
-func Plain(identity, username, password string) Mechanism {
-	return Mechanism{
-		Names: []string{"PLAIN"},
-		Start: func() (bool, []byte, error) {
-			return false, []byte(identity + "\x00" + username + "\x00" + password), nil
-		},
-		Next: func(state State, challenge []byte) (bool, []byte, error) {
-			return false, nil, ErrTooManySteps
-		},
-	}
+// Plain implements the PLAIN authentication mechanism as defined by RFC 4616.
+var Plain = Mechanism{
+	Names: []string{"PLAIN"},
+	Start: func(creds Credentials) (bool, []byte, error) {
+		c := creds.(authz)
+		return false, []byte(c.Identity + "\x00" + c.Username + "\x00" + c.Password), nil
+	},
+	Next: func(state State, creds Credentials, challenge []byte) (bool, []byte, error) {
+		return false, nil, ErrTooManySteps
+	},
 }

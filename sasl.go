@@ -30,6 +30,6 @@ const (
 // Mechanisms must be stateless and may be shared between goroutines.
 type Mechanism struct {
 	Names []string
-	Start func() (more bool, resp []byte, err error)
-	Next  func(state State, challenge []byte) (more bool, resp []byte, err error)
+	Start func(c Credentials) (more bool, resp []byte, err error)
+	Next  func(state State, c Credentials, challenge []byte) (more bool, resp []byte, err error)
 }
