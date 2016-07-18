@@ -25,6 +25,13 @@ const (
 	ValidServerResponse
 )
 
+// TODO(ssw): Consider the posibility of having Start return an interface{}
+//            which will be remembered by the client or server and then passed
+//            back in on calls to Next. This way Mechanisms can actually have
+//            some state between calls, but they never have to store it so
+//            they're still safe for concurrent use (the Client or Server
+//            actually stores the state).
+
 // Mechanism represents a SASL mechanism.
 //
 // Mechanisms must be stateless and may be shared between goroutines.
