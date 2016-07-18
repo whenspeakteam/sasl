@@ -16,13 +16,25 @@ var (
 )
 
 // State represents the current state of a Mechanism's underlying state machine.
-type State int8
+// The first two bits represent the actual state of the mechanism, and the last
+// bit is true if the mechanism is currently being used by a Server.
+type State uint8
 
 const (
+	stateMask = 0x3
+)
+
+const (
+	// The current step of the Server or Client (represented by the first two bits
+	// of the state byte).
 	Initial State = iota
 	AuthTextSent
 	ResponseSent
 	ValidServerResponse
+
+	// Bit is on if the mechanism is being used by a SASL server (off if used by a
+	// client).
+	Server State = 1 << 7
 )
 
 // TODO(ssw): Consider the posibility of having Start return an interface{}
@@ -32,7 +44,8 @@ const (
 //            they're still safe for concurrent use (the Client or Server
 //            actually stores the state).
 
-// Mechanism represents a SASL mechanism.
+// Mechanism represents a SASL mechanism that can be used by a Client or Server
+// to perform the actual negotiation.
 //
 // Mechanisms must be stateless and may be shared between goroutines.
 type Mechanism struct {

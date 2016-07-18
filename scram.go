@@ -93,7 +93,7 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 				return false, nil, ErrInvalidChallenge
 			}
 
-			switch state {
+			switch state & stateMask {
 			case AuthTextSent:
 				serverFirstMessage := make([]byte, base64.StdEncoding.DecodedLen(len(challenge)))
 				n, err := base64.StdEncoding.Decode(serverFirstMessage, challenge)

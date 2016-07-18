@@ -22,7 +22,7 @@ func (c *Client) Step(challenge []byte) (more bool, resp []byte, err error) {
 		panic(c.Err())
 	}
 
-	switch c.state {
+	switch c.state & stateMask {
 	case Initial:
 		more, resp, c.err = c.Mechanism.Start()
 		c.state = AuthTextSent
