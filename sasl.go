@@ -15,9 +15,10 @@ var (
 	ErrTooManySteps     = errors.New("Step called too many times")
 )
 
-// State represents the current state of a Mechanism's underlying state machine.
-// The first two bits represent the actual state of the mechanism, and the last
-// bit is true if the mechanism is currently being used by a Server.
+// State represents the current state of a client or server's underlying state
+// machine. The first two bits represent the actual state of the client or
+// server, and the last bit is true if the mechanism is currently being used by
+// a Server.
 type State uint8
 
 const (
