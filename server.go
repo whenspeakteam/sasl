@@ -13,6 +13,15 @@ type Server struct {
 	state State
 }
 
+// Creates a new SASL server that supports the given mechanism.
+func NewServer(m Mechanism) *Server {
+	return &Server{
+		Mechanism: m,
+
+		state: Receiving,
+	}
+}
+
 // Step attempts to transition the SASL server to its next state. If Step is
 // called after a previous invocation generates an error (and the Client has not
 // been reset to its initial state), Step panics.
