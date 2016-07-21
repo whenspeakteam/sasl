@@ -78,5 +78,5 @@ func (c *Machine) State() State {
 // Reset resets the state machine to its initial state so that it can be reused
 // in another SASL exchange.
 func (c *Machine) Reset() {
-	c.state = c.state & Receiving
+	c.state = c.state & (Receiving | RemoteCB)
 }
