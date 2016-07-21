@@ -6,7 +6,6 @@ package sasl
 
 import (
 	"bytes"
-	"crypto/subtle"
 )
 
 var plainSep = []byte{0}
@@ -21,25 +20,21 @@ func Plain(identity, username, password string) Mechanism {
 			return false, []byte(identity + "\x00" + username + "\x00" + password), nil
 		},
 		Next: func(m Negotiator, challenge []byte) (bool, []byte, error) {
+			// If we're a client or a server that's past the AuthTextSent step, we
+			// should never actually hit this step.
 			if m.State()&Receiving != Receiving || m.State()&stateMask != AuthTextSent {
 				return false, nil, ErrTooManySteps
 			}
 
-			// Split "Identity\x00Username\x00Password"
+			// If we're a server, validate that the challenge looks like:
+			// "Identity\x00Username\x00Password"
 			parts := bytes.Split(challenge, plainSep)
 			if len(parts) != 3 {
 				return false, nil, ErrInvalidChallenge
 			}
 
-			// TODO: See the BUG comment in doc.go. This is only for testing and MUST
-			// be removed later.
-			if subtle.ConstantTimeCompare(parts[0], []byte(identity)) != 1 ||
-				subtle.ConstantTimeCompare(parts[1], []byte(username)) != 1 ||
-				subtle.ConstantTimeCompare(parts[2], []byte(password)) != 1 {
-				return false, nil, ErrAuthn
-			}
-
-			// Everything checks out and the user is authenticated.
+			// Everything checks out as far as we know and the server should continue
+			// to authenticate the user.
 			return false, nil, nil
 		},
 	}
