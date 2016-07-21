@@ -27,7 +27,17 @@ var serverTestCases = testCases{
 	}, {
 		machine: newServer(Plain("", "", "")),
 		steps: []saslStep{
-			saslStep{challenge: []byte("Ursel\x00Kurt\x00xipj3plmq"), resp: nil, err: false, more: false},
+			saslStep{challenge: plainResp, resp: plainResp, err: false, more: false},
+		},
+	}, {
+		machine: newServer(scram("", "", "", nil, nil, nil)),
+		steps: []saslStep{
+			saslStep{challenge: nil, resp: nil, err: true, more: false},
+		},
+	}, {
+		machine: newServer(scram("", "", "", nil, nil, nil)),
+		steps: []saslStep{
+			saslStep{challenge: []byte{}, resp: nil, err: true, more: false},
 		},
 	}},
 }

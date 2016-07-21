@@ -35,7 +35,7 @@ func Plain(identity, username, password string) Mechanism {
 
 			// Everything checks out as far as we know and the server should continue
 			// to authenticate the user.
-			return false, nil, nil
+			return false, challenge, nil
 		},
 	}
 }
