@@ -41,7 +41,7 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("", "user", "pencil", []string{"SCRAM-SHA-1-PLUS"}, []byte("16090868851744577"), sha1.New),
-			RemoteMechanisms([]string{"SCRAM-SHA-1-PLUS"}),
+			RemoteMechanisms("SCRAM-SHA-1-PLUS"),
 			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
 		),
 		steps: []saslStep{
@@ -83,7 +83,7 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("admin", "user", "pencil", []string{"SCRAM-SHA-256-PLUS"}, []byte("12249535949609558"), sha256.New),
-			RemoteMechanisms([]string{"SCRAM-SOMETHING", "SCRAM-SHA-256-PLUS"}),
+			RemoteMechanisms("SCRAM-SOMETHING", "SCRAM-SHA-256-PLUS"),
 			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
 		),
 		steps: []saslStep{
@@ -106,7 +106,7 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("", ",=,=", "password", []string{"SCRAM-SHA-1-PLUS"}, []byte("ournonce"), sha1.New),
-			RemoteMechanisms([]string{"SCRAM-SHA-1-PLUS"}),
+			RemoteMechanisms("SCRAM-SHA-1-PLUS"),
 			ConnState(tls.ConnectionState{TLSUnique: []byte("finishedmessage")}),
 		),
 		steps: []saslStep{

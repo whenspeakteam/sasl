@@ -40,7 +40,7 @@ func ConnState(cs tls.ConnectionState) Option {
 // client or server with which the state machine will be negotiating. It is used
 // to determine if the server supports channel binding and is required for
 // proper support.
-func RemoteMechanisms(m []string) Option {
+func RemoteMechanisms(m ...string) Option {
 	return func(o *Config) {
 		o.RemoteMechanisms = m
 	}
