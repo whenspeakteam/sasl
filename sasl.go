@@ -17,8 +17,7 @@ var (
 
 // State represents the current state of a client or server's underlying state
 // machine. The first two bits represent the actual state of the client or
-// server, and the last bit is true if the mechanism is currently being used by
-// a Server.
+// server and the last 3 bits are a bitmask that encode other state information.
 type State uint8
 
 const (
@@ -33,8 +32,13 @@ const (
 	ResponseSent
 	ValidServerResponse
 
-	RemoteCB  State = 1 << 5
-	Errored   State = 1 << 6
+	// Bit is on if the remote client or server supports channel binding.
+	RemoteCB State = 1 << 5
+
+	// Bit is on if the machine has errored.
+	Errored State = 1 << 6
+
+	// Bit is on if the machine is a server.
 	Receiving State = 1 << 7
 )
 
