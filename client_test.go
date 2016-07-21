@@ -20,8 +20,8 @@ type saslStep struct {
 }
 
 type saslTest struct {
-	client *Machine
-	steps  []saslStep
+	machine *Machine
+	steps   []saslStep
 }
 
 var testCases = []struct {
@@ -30,7 +30,7 @@ var testCases = []struct {
 }{{
 	name: "PLAIN",
 	cases: []saslTest{{
-		client: &Machine{mechanism: Plain("Ursel", "Kurt", "xipj3plmq")},
+		machine: &Machine{mechanism: Plain("Ursel", "Kurt", "xipj3plmq")},
 		steps: []saslStep{
 			saslStep{challenge: []byte{}, resp: []byte("Ursel\x00Kurt\x00xipj3plmq"), err: false, more: false},
 			saslStep{challenge: nil, resp: nil, err: true, more: false},
@@ -39,7 +39,7 @@ var testCases = []struct {
 }, {
 	name: "SCRAM",
 	cases: []saslTest{{
-		client: NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New)),
+		machine: NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New)),
 		steps: []saslStep{
 			saslStep{
 				challenge: nil,
@@ -58,7 +58,7 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: NewClient(
+		machine: NewClient(
 			scram("", "user", "pencil", []string{"SCRAM-SHA-1-PLUS"}, []byte("16090868851744577"), sha1.New),
 			RemoteMechanisms([]string{"SCRAM-SHA-1-PLUS"}),
 			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
@@ -81,7 +81,7 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-256"}, []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New)),
+		machine: NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-256"}, []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New)),
 		steps: []saslStep{
 			saslStep{
 				challenge: []byte{},
@@ -100,7 +100,7 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: NewClient(
+		machine: NewClient(
 			scram("admin", "user", "pencil", []string{"SCRAM-SHA-256-PLUS"}, []byte("12249535949609558"), sha256.New),
 			RemoteMechanisms([]string{"SCRAM-SOMETHING", "SCRAM-SHA-256-PLUS"}),
 			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
@@ -123,7 +123,7 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: NewClient(
+		machine: NewClient(
 			scram("", ",=,=", "password", []string{"SCRAM-SHA-1-PLUS"}, []byte("ournonce"), sha1.New),
 			RemoteMechanisms([]string{"SCRAM-SHA-1-PLUS"}),
 			ConnState(tls.ConnectionState{TLSUnique: []byte("finishedmessage")}),
@@ -151,11 +151,11 @@ var testCases = []struct {
 func TestSasl(t *testing.T) {
 	doTests(t, func(t *testing.T, test saslTest) {
 		for i, step := range test.steps {
-			more, resp, err := test.client.Step(step.challenge)
+			more, resp, err := test.machine.Step(step.challenge)
 			switch {
-			case err != nil && test.client.state&Errored != Errored:
+			case err != nil && test.machine.state&Errored != Errored:
 				t.Fatalf("Machine internal error state was not set, got error: %v", err)
-			case err == nil && test.client.state&Errored == Errored:
+			case err == nil && test.machine.state&Errored == Errored:
 				t.Fatal("Machine internal error state was set, but no error was returned")
 			case string(step.resp) != string(resp):
 				t.Fatalf("Got invalid challenge text during step %d:\nexpected %s\n     got %s", i+1, step.resp, resp)
