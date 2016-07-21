@@ -79,6 +79,11 @@ func (c *client) State() State {
 // in another SASL exchange.
 func (c *client) Reset() {
 	c.state = c.state & (Receiving | RemoteCB)
+
+	// Skip the start step for servers
+	if c.state&Receiving == Receiving {
+		c.state = c.state&^stateMask | AuthTextSent
+	}
 }
 
 // Config returns the clients configuration.

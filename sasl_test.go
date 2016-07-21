@@ -27,7 +27,7 @@ type testCases struct {
 }
 
 func TestSASL(t *testing.T) {
-	doTests(t, []testCases{clientTestCases}, func(t *testing.T, test saslTest) {
+	doTests(t, []testCases{clientTestCases, serverTestCases}, func(t *testing.T, test saslTest) {
 		// Run each test twice to make srue that Reset actually sets the state back
 		// to the initial state.
 		for run := 1; run < 3; run++ {
