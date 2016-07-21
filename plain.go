@@ -31,8 +31,8 @@ func Plain(identity, username, password string) Mechanism {
 				return false, nil, ErrInvalidChallenge
 			}
 
-			// TODO: This *MUST* be extracted into a user provided function somehow.
-			//       We don't want to require that servers store plain text passwords.
+			// TODO: See the BUG comment in doc.go. This is only for testing and MUST
+			// be removed later.
 			if subtle.ConstantTimeCompare(parts[0], []byte(identity)) != 1 ||
 				subtle.ConstantTimeCompare(parts[1], []byte(username)) != 1 ||
 				subtle.ConstantTimeCompare(parts[2], []byte(password)) != 1 {

@@ -7,3 +7,9 @@
 //
 // Be advised: This API is still unstable and is subject to change.
 package sasl // import "mellium.im/sasl"
+
+// BUG(ssw): The server implementation must take some sort of comparison
+//           function that handles checking the credentials so that we can pass
+//           in hashed credentials or delegate to another auth backend. Or maybe
+//           I should just give up on finding an API that works for clients and
+//           servers.
