@@ -26,7 +26,7 @@ type Machine struct {
 func NewServer(m Mechanism, opts ...Option) *Machine {
 	machine := &Machine{
 		mechanism: m,
-		state:     Receiving,
+		state:     AuthTextSent | Receiving,
 	}
 	getOpts(machine, opts...)
 	return machine
