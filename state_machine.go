@@ -52,13 +52,13 @@ func (c *client) Step(challenge []byte) (more bool, resp []byte, err error) {
 	switch c.state & stateMask {
 	case Initial:
 		more, resp, err = c.mechanism.Start(c)
-		c.state = AuthTextSent
+		c.state = c.state&^stateMask | AuthTextSent
 	case AuthTextSent:
 		more, resp, err = c.mechanism.Next(c, challenge)
-		c.state = ResponseSent
+		c.state = c.state&^stateMask | ResponseSent
 	case ResponseSent:
 		more, resp, err = c.mechanism.Next(c, challenge)
-		c.state = ValidServerResponse
+		c.state = c.state&^stateMask | ValidServerResponse
 	case ValidServerResponse:
 		more, resp, err = c.mechanism.Next(c, challenge)
 	}
