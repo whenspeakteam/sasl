@@ -209,8 +209,8 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 // argument indicates that the server advertised support for channel binding and
 // is used to help prevent downgrade attacks. Each call to the function returns
 // a new Mechanism with its own internal state.
-func ScramSha1(username, password string, plus bool, connstate *tls.ConnectionState) Mechanism {
-	return scram("", username, password, []string{
+func ScramSha1(identity, username, password string, plus bool, connstate *tls.ConnectionState) Mechanism {
+	return scram(identity, username, password, []string{
 		"SCRAM-SHA-1",
 		"SCRAM-SHA-1-PLUS",
 	}, nonce(noncerandlen, cryptoReader{}), sha1.New, plus, connstate)
@@ -222,8 +222,8 @@ func ScramSha1(username, password string, plus bool, connstate *tls.ConnectionSt
 // argument indicates that the server advertised support for channel binding and
 // is used to help prevent downgrade attacks. Each call to the function returns
 // a new Mechanism with its own internal state.
-func ScramSha256(username, password string, plus bool, connstate *tls.ConnectionState) Mechanism {
-	return scram("", username, password, []string{
+func ScramSha256(identity, username, password string, plus bool, connstate *tls.ConnectionState) Mechanism {
+	return scram(identity, username, password, []string{
 		"SCRAM-SHA-256",
 		"SCRAM-SHA-256-PLUS",
 	}, nonce(noncerandlen, cryptoReader{}), sha256.New, plus, connstate)
