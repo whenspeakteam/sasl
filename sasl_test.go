@@ -39,7 +39,6 @@ func TestSASL(t *testing.T) {
 				case err == nil && test.machine.State()&Errored == Errored:
 					t.Fatalf("Run %d: State machine internal error state was set, but no error was returned", run)
 				case string(step.resp) != string(resp):
-					t.Log("State:", test.machine.State(), RemoteCB)
 					t.Fatalf("Run %d: Got invalid challenge text during step %d:\nexpected %s\n     got %s", run, i+1, step.resp, resp)
 				case more != step.more:
 					t.Fatalf("Run %d: Got unexpected value for more: %v", run, more)
