@@ -14,7 +14,7 @@ import (
 func doTests(t *testing.T, fn func(t *testing.T, tc saslTest)) {
 	for _, g := range testCases {
 		for i, tc := range g.cases {
-			name := fmt.Sprintf("%s:%d:%s", g.name, i, tc.client.Mechanism.Names)
+			name := fmt.Sprintf("%s:%d:%s", g.name, i, tc.client.mechanism.Names)
 			t.Run(name, func(t *testing.T) {
 				fn(t, tc)
 			})

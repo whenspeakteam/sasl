@@ -7,7 +7,3 @@
 //
 // Be advised: This API is still unstable and is subject to change.
 package sasl // import "mellium.im/sasl"
-
-// BUG(ssw): Providing credentials and creating a client nonce need to be
-//           deferred until the Client is constructed and do not need to be a
-//           part of the mechanism.

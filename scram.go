@@ -9,7 +9,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"hash"
@@ -33,7 +32,7 @@ var (
 // The number of random bytes to generate for a nonce.
 const noncerandlen = 16
 
-func scram(authzid, username, password string, names []string, clientNonce []byte, fn func() hash.Hash, plus bool, connstate *tls.ConnectionState) Mechanism {
+func scram(authzid, username, password string, names []string, clientNonce []byte, fn func() hash.Hash) Mechanism {
 	iter := -1
 	var salt, nonce, clientFirstMessage, serverSignature []byte
 	var gs2Header []byte
@@ -45,50 +44,31 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 	if authzid != "" {
 		authzid = "a=" + authzid
 	}
-	switch {
-	case connstate == nil:
-		// We do not support channel binding
-		gs2Header = []byte(gs2HeaderNoCBSupport + authzid + ",")
-	case plus:
-		// We support channel binding and the server does too
-		gs2Header = []byte(gs2HeaderCBSupport + authzid + ",")
-	case !plus:
-		// We support channel binding but the server does not
-		gs2Header = []byte(gs2HeaderNoServerCBSupport + authzid + ",")
-	}
-	var channelBinding []byte
-	if connstate != nil {
-		channelBinding = make(
-			[]byte,
-			2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(connstate.TLSUnique)),
-		)
-		channelBinding[0] = 'c'
-		channelBinding[1] = '='
-		base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, connstate.TLSUnique...))
-	} else {
-
-		channelBinding = make(
-			[]byte,
-			2+base64.StdEncoding.EncodedLen(len(gs2Header)),
-		)
-		channelBinding[0] = 'c'
-		channelBinding[1] = '='
-		base64.StdEncoding.Encode(channelBinding[2:], gs2Header)
-
-	}
 
 	return Mechanism{
 		Names: names,
-		Start: func() (bool, []byte, error) {
+		Start: func(m *Machine) (bool, []byte, error) {
 			// TODO(ssw): Use the correct PRECIS profile on username.
 			clientFirstMessage = append([]byte("n="+username+",r="), clientNonce...)
 
+			switch {
+			case m.TLSState == nil:
+				// We do not support channel binding
+				gs2Header = []byte(gs2HeaderNoCBSupport + authzid + ",")
+			case m.State()&RemoteCB == RemoteCB:
+				// We support channel binding and the server does too
+				gs2Header = []byte(gs2HeaderCBSupport + authzid + ",")
+			case m.State()&RemoteCB != RemoteCB:
+				// We support channel binding but the server does not
+				gs2Header = []byte(gs2HeaderNoServerCBSupport + authzid + ",")
+			}
 			unencoded := append(gs2Header, clientFirstMessage...)
 			b := make([]byte, base64.StdEncoding.EncodedLen(len(unencoded)))
 			base64.StdEncoding.Encode(b, unencoded)
 			return true, b, nil
 		},
-		Next: func(state State, challenge []byte) (bool, []byte, error) {
+		Next: func(m *Machine, challenge []byte) (bool, []byte, error) {
+			state := m.State()
 			if challenge == nil || len(challenge) == 0 {
 				return false, nil, ErrInvalidChallenge
 			}
@@ -143,6 +123,24 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 					return false, nil, errors.New("Server sent empty salt")
 				}
 
+				var channelBinding []byte
+				if m.TLSState != nil {
+					channelBinding = make(
+						[]byte,
+						2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(m.TLSState.TLSUnique)),
+					)
+					channelBinding[0] = 'c'
+					channelBinding[1] = '='
+					base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, m.TLSState.TLSUnique...))
+				} else {
+					channelBinding = make(
+						[]byte,
+						2+base64.StdEncoding.EncodedLen(len(gs2Header)),
+					)
+					channelBinding[0] = 'c'
+					channelBinding[1] = '='
+					base64.StdEncoding.Encode(channelBinding[2:], gs2Header)
+				}
 				clientFinalMessageWithoutProof := append(channelBinding, []byte(",r=")...)
 				clientFinalMessageWithoutProof = append(clientFinalMessageWithoutProof, nonce...)
 
@@ -209,11 +207,11 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 // argument indicates that the server advertised support for channel binding and
 // is used to help prevent downgrade attacks. Each call to the function returns
 // a new Mechanism with its own internal state.
-func ScramSha1(identity, username, password string, plus bool, connstate *tls.ConnectionState) Mechanism {
+func ScramSha1(identity, username, password string) Mechanism {
 	return scram(identity, username, password, []string{
 		"SCRAM-SHA-1",
 		"SCRAM-SHA-1-PLUS",
-	}, nonce(noncerandlen, cryptoReader{}), sha1.New, plus, connstate)
+	}, nonce(noncerandlen, cryptoReader{}), sha1.New)
 }
 
 // ScramSha256 returns a Mechanism that implements the SCRAM-SHA-256 and
@@ -222,9 +220,9 @@ func ScramSha1(identity, username, password string, plus bool, connstate *tls.Co
 // argument indicates that the server advertised support for channel binding and
 // is used to help prevent downgrade attacks. Each call to the function returns
 // a new Mechanism with its own internal state.
-func ScramSha256(identity, username, password string, plus bool, connstate *tls.ConnectionState) Mechanism {
+func ScramSha256(identity, username, password string) Mechanism {
 	return scram(identity, username, password, []string{
 		"SCRAM-SHA-256",
 		"SCRAM-SHA-256-PLUS",
-	}, nonce(noncerandlen, cryptoReader{}), sha256.New, plus, connstate)
+	}, nonce(noncerandlen, cryptoReader{}), sha256.New)
 }

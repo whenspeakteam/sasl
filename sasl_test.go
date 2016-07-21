@@ -20,7 +20,7 @@ type saslStep struct {
 }
 
 type saslTest struct {
-	client *Client
+	client *Machine
 	steps  []saslStep
 }
 
@@ -30,7 +30,7 @@ var testCases = []struct {
 }{{
 	name: "PLAIN",
 	cases: []saslTest{{
-		client: &Client{Mechanism: Plain("Ursel", "Kurt", "xipj3plmq")},
+		client: &Machine{mechanism: Plain("Ursel", "Kurt", "xipj3plmq")},
 		steps: []saslStep{
 			saslStep{challenge: []byte{}, resp: []byte("Ursel\x00Kurt\x00xipj3plmq"), err: false, more: false},
 			saslStep{challenge: nil, resp: nil, err: true, more: false},
@@ -39,7 +39,7 @@ var testCases = []struct {
 }, {
 	name: "SCRAM",
 	cases: []saslTest{{
-		client: &Client{Mechanism: scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New, false, nil)},
+		client: NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New)),
 		steps: []saslStep{
 			saslStep{
 				challenge: nil,
@@ -58,7 +58,11 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: &Client{Mechanism: scram("", "user", "pencil", []string{"SCRAM-SHA-1-PLUS"}, []byte("16090868851744577"), sha1.New, true, &tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}})},
+		client: NewClient(
+			scram("", "user", "pencil", []string{"SCRAM-SHA-1-PLUS"}, []byte("16090868851744577"), sha1.New),
+			RemoteMechanisms([]string{"SCRAM-SHA-1-PLUS"}),
+			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
+		),
 		steps: []saslStep{
 			saslStep{
 				challenge: nil,
@@ -77,7 +81,7 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: &Client{Mechanism: scram("", "user", "pencil", []string{"SCRAM-SHA-256"}, []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New, false, nil)},
+		client: NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-256"}, []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New)),
 		steps: []saslStep{
 			saslStep{
 				challenge: []byte{},
@@ -96,7 +100,11 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: &Client{Mechanism: scram("admin", "user", "pencil", []string{"SCRAM-SHA-256-PLUS"}, []byte("12249535949609558"), sha256.New, true, &tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}})},
+		client: NewClient(
+			scram("admin", "user", "pencil", []string{"SCRAM-SHA-256-PLUS"}, []byte("12249535949609558"), sha256.New),
+			RemoteMechanisms([]string{"SCRAM-SOMETHING", "SCRAM-SHA-256-PLUS"}),
+			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
+		),
 		steps: []saslStep{
 			saslStep{
 				challenge: []byte{},
@@ -115,7 +123,11 @@ var testCases = []struct {
 			},
 		},
 	}, {
-		client: &Client{Mechanism: scram("", ",=,=", "password", []string{"SCRAM-SHA-1-PLUS"}, []byte("ournonce"), sha1.New, true, &tls.ConnectionState{TLSUnique: []byte("finishedmessage")})},
+		client: NewClient(
+			scram("", ",=,=", "password", []string{"SCRAM-SHA-1-PLUS"}, []byte("ournonce"), sha1.New),
+			RemoteMechanisms([]string{"SCRAM-SHA-1-PLUS"}),
+			ConnState(tls.ConnectionState{TLSUnique: []byte("finishedmessage")}),
+		),
 		steps: []saslStep{
 			saslStep{
 				challenge: []byte{},
@@ -142,9 +154,9 @@ func TestSasl(t *testing.T) {
 			more, resp, err := test.client.Step(step.challenge)
 			switch {
 			case err != nil && test.client.state&Errored != Errored:
-				t.Fatalf("Client internal error state was not set, got error: %v", err)
+				t.Fatalf("Machine internal error state was not set, got error: %v", err)
 			case err == nil && test.client.state&Errored == Errored:
-				t.Fatal("Client internal error state was set, but no error was returned")
+				t.Fatal("Machine internal error state was set, but no error was returned")
 			case string(step.resp) != string(resp):
 				t.Fatalf("Got invalid challenge text during step %d:\nexpected %s\n     got %s", i+1, step.resp, resp)
 			case more != step.more:
@@ -156,7 +168,7 @@ func TestSasl(t *testing.T) {
 
 func BenchmarkScram(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		c := &Client{Mechanism: scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New, false, nil)}
+		c := NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New))
 		for _, step := range testCases[1].cases[0].steps {
 			more, _, _ := c.Step(step.challenge)
 			if !more {

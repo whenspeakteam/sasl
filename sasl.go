@@ -33,6 +33,7 @@ const (
 	ResponseSent
 	ValidServerResponse
 
+	RemoteCB  State = 1 << 5
 	Errored   State = 1 << 6
 	Receiving State = 1 << 7
 )
@@ -50,6 +51,6 @@ const (
 // Mechanisms must be stateless and may be shared between goroutines.
 type Mechanism struct {
 	Names []string
-	Start func() (more bool, resp []byte, err error)
-	Next  func(state State, challenge []byte) (more bool, resp []byte, err error)
+	Start func(m *Machine) (more bool, resp []byte, err error)
+	Next  func(m *Machine, challenge []byte) (more bool, resp []byte, err error)
 }
