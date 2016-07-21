@@ -24,21 +24,20 @@ type saslTest struct {
 	steps   []saslStep
 }
 
-var testCases = []struct {
+type testCases struct {
 	name  string
 	cases []saslTest
-}{{
-	name: "PLAIN",
+}
+
+var clientTestCases = testCases{
+	name: "Client",
 	cases: []saslTest{{
 		machine: &Machine{mechanism: Plain("Ursel", "Kurt", "xipj3plmq")},
 		steps: []saslStep{
 			saslStep{challenge: []byte{}, resp: []byte("Ursel\x00Kurt\x00xipj3plmq"), err: false, more: false},
 			saslStep{challenge: nil, resp: nil, err: true, more: false},
 		},
-	}},
-}, {
-	name: "SCRAM",
-	cases: []saslTest{{
+	}, {
 		machine: NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New)),
 		steps: []saslStep{
 			saslStep{
@@ -145,11 +144,12 @@ var testCases = []struct {
 				err:       false, more: false,
 			},
 		},
-	}},
-}}
+	},
+	},
+}
 
 func TestSasl(t *testing.T) {
-	doTests(t, func(t *testing.T, test saslTest) {
+	doTests(t, clientTestCases, func(t *testing.T, test saslTest) {
 		for i, step := range test.steps {
 			more, resp, err := test.machine.Step(step.challenge)
 			switch {
@@ -169,7 +169,7 @@ func TestSasl(t *testing.T) {
 func BenchmarkScram(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		c := NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New))
-		for _, step := range testCases[1].cases[0].steps {
+		for _, step := range clientTestCases.cases[0].steps {
 			more, _, _ := c.Step(step.challenge)
 			if !more {
 				break

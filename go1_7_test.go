@@ -11,13 +11,11 @@ import (
 	"testing"
 )
 
-func doTests(t *testing.T, fn func(t *testing.T, tc saslTest)) {
-	for _, g := range testCases {
-		for i, tc := range g.cases {
-			name := fmt.Sprintf("%s:%d:%s", g.name, i, tc.machine.mechanism.Names)
-			t.Run(name, func(t *testing.T) {
-				fn(t, tc)
-			})
-		}
+func doTests(t *testing.T, cases testCases, fn func(t *testing.T, tc saslTest)) {
+	for i, tc := range cases.cases {
+		name := fmt.Sprintf("%s:%d:%s", cases.name, i, tc.machine.mechanism.Names)
+		t.Run(name, func(t *testing.T) {
+			fn(t, tc)
+		})
 	}
 }
