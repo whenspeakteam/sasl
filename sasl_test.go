@@ -28,18 +28,24 @@ type testCases struct {
 
 func TestSASL(t *testing.T) {
 	doTests(t, []testCases{clientTestCases}, func(t *testing.T, test saslTest) {
-		for i, step := range test.steps {
-			more, resp, err := test.machine.Step(step.challenge)
-			switch {
-			case err != nil && test.machine.State()&Errored != Errored:
-				t.Fatalf("State machine internal error state was not set, got error: %v", err)
-			case err == nil && test.machine.State()&Errored == Errored:
-				t.Fatal("State machine internal error state was set, but no error was returned")
-			case string(step.resp) != string(resp):
-				t.Fatalf("Got invalid challenge text during step %d:\nexpected %s\n     got %s", i+1, step.resp, resp)
-			case more != step.more:
-				t.Fatalf("Got unexpected value for more: %v", more)
+		// Run each test twice to make srue that Reset actually sets the state back
+		// to the initial state.
+		for run := 1; run < 3; run++ {
+			for i, step := range test.steps {
+				more, resp, err := test.machine.Step(step.challenge)
+				switch {
+				case err != nil && test.machine.State()&Errored != Errored:
+					t.Fatalf("Run %d: State machine internal error state was not set, got error: %v", run, err)
+				case err == nil && test.machine.State()&Errored == Errored:
+					t.Fatalf("Run %d: State machine internal error state was set, but no error was returned", run)
+				case string(step.resp) != string(resp):
+					t.Log("State:", test.machine.State(), RemoteCB)
+					t.Fatalf("Run %d: Got invalid challenge text during step %d:\nexpected %s\n     got %s", run, i+1, step.resp, resp)
+				case more != step.more:
+					t.Fatalf("Run %d: Got unexpected value for more: %v", run, more)
+				}
 			}
+			test.machine.Reset()
 		}
 	})
 }
