@@ -17,7 +17,7 @@ type saslStep struct {
 }
 
 type saslTest struct {
-	machine *Machine
+	machine Negotiator
 	steps   []saslStep
 }
 
@@ -27,14 +27,14 @@ type testCases struct {
 }
 
 func TestSASL(t *testing.T) {
-	doTests(t, []testCases{clientTestCases, serverTestCases}, func(t *testing.T, test saslTest) {
+	doTests(t, []testCases{clientTestCases}, func(t *testing.T, test saslTest) {
 		for i, step := range test.steps {
 			more, resp, err := test.machine.Step(step.challenge)
 			switch {
-			case err != nil && test.machine.state&Errored != Errored:
-				t.Fatalf("Machine internal error state was not set, got error: %v", err)
-			case err == nil && test.machine.state&Errored == Errored:
-				t.Fatal("Machine internal error state was set, but no error was returned")
+			case err != nil && test.machine.State()&Errored != Errored:
+				t.Fatalf("State machine internal error state was not set, got error: %v", err)
+			case err == nil && test.machine.State()&Errored == Errored:
+				t.Fatal("State machine internal error state was set, but no error was returned")
 			case string(step.resp) != string(resp):
 				t.Fatalf("Got invalid challenge text during step %d:\nexpected %s\n     got %s", i+1, step.resp, resp)
 			case more != step.more:

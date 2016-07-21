@@ -47,12 +47,12 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 
 	return Mechanism{
 		Names: names,
-		Start: func(m *Machine) (bool, []byte, error) {
+		Start: func(m Negotiator) (bool, []byte, error) {
 			// TODO(ssw): Use the correct PRECIS profile on username.
 			clientFirstMessage = append([]byte("n="+username+",r="), clientNonce...)
 
 			switch {
-			case m.TLSState == nil:
+			case m.Config().TLSState == nil:
 				// We do not support channel binding
 				gs2Header = []byte(gs2HeaderNoCBSupport + authzid + ",")
 			case m.State()&RemoteCB == RemoteCB:
@@ -67,7 +67,7 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 			base64.StdEncoding.Encode(b, unencoded)
 			return true, b, nil
 		},
-		Next: func(m *Machine, challenge []byte) (bool, []byte, error) {
+		Next: func(m Negotiator, challenge []byte) (bool, []byte, error) {
 			state := m.State()
 			if challenge == nil || len(challenge) == 0 {
 				return false, nil, ErrInvalidChallenge
@@ -124,14 +124,14 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 				}
 
 				var channelBinding []byte
-				if m.TLSState != nil {
+				if m.Config().TLSState != nil {
 					channelBinding = make(
 						[]byte,
-						2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(m.TLSState.TLSUnique)),
+						2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(m.Config().TLSState.TLSUnique)),
 					)
 					channelBinding[0] = 'c'
 					channelBinding[1] = '='
-					base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, m.TLSState.TLSUnique...))
+					base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, m.Config().TLSState.TLSUnique...))
 				} else {
 					channelBinding = make(
 						[]byte,

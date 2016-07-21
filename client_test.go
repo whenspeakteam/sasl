@@ -14,7 +14,7 @@ import (
 var clientTestCases = testCases{
 	name: "Client",
 	cases: []saslTest{{
-		machine: &Machine{mechanism: Plain("Ursel", "Kurt", "xipj3plmq")},
+		machine: &client{mechanism: Plain("Ursel", "Kurt", "xipj3plmq")},
 		steps: []saslStep{
 			saslStep{challenge: []byte{}, resp: []byte("Ursel\x00Kurt\x00xipj3plmq"), err: false, more: false},
 			saslStep{challenge: nil, resp: nil, err: true, more: false},

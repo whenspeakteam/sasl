@@ -56,6 +56,6 @@ const (
 // Mechanisms must be stateless and may be shared between goroutines.
 type Mechanism struct {
 	Names []string
-	Start func(m *Machine) (more bool, resp []byte, err error)
-	Next  func(m *Machine, challenge []byte) (more bool, resp []byte, err error)
+	Start func(n Negotiator) (more bool, resp []byte, err error)
+	Next  func(n Negotiator, challenge []byte) (more bool, resp []byte, err error)
 }

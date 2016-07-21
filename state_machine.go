@@ -5,46 +5,46 @@
 package sasl
 
 import (
-	"crypto/tls"
+	"strings"
 )
 
-// A Machine represents a SASL client or server state machine that can attempt
-// to negotiate auth using its underlying Mechanism. Machines should not be used
-// from multiple goroutines, and must be reset between negotiation attempts.
-type Machine struct {
-	// The state of any TLS connections being used to negotiate SASL (for channel
-	// binding).
-	TLSState *tls.ConnectionState
+// A Negotiator represents a SASL client or server state machine that can
+// attempt to negotiate auth. Machines should not be used from multiple
+// goroutines, and must be reset between negotiation attempts.
+type Negotiator interface {
+	Step(challenge []byte) (more bool, resp []byte, err error)
+	State() State
+	Config() Config
+	Reset()
+}
 
-	RemoteMechanisms []string
-
+type client struct {
+	config    Config
 	mechanism Mechanism
 	state     State
 }
 
-// NewServer creates a new SASL server that supports the given mechanism.
-func NewServer(m Mechanism, opts ...Option) *Machine {
-	machine := &Machine{
-		mechanism: m,
-		state:     AuthTextSent | Receiving,
-	}
-	getOpts(machine, opts...)
-	return machine
-}
-
 // NewClient creates a new SASL client that supports the given mechanism.
-func NewClient(m Mechanism, opts ...Option) *Machine {
-	machine := &Machine{
+func NewClient(m Mechanism, opts ...Option) Negotiator {
+	machine := &client{
+		config:    getOpts(opts...),
 		mechanism: m,
 	}
-	getOpts(machine, opts...)
+	for _, lname := range m.Names {
+		for _, rname := range machine.config.RemoteMechanisms {
+			if lname == rname && strings.HasSuffix(lname, "-PLUS") {
+				machine.state |= RemoteCB
+				return machine
+			}
+		}
+	}
 	return machine
 }
 
 // Step attempts to transition the state machine to its next state. If Step is
 // called after a previous invocation generates an error (and the Machine has
 // not been reset to its initial state), Step panics.
-func (c *Machine) Step(challenge []byte) (more bool, resp []byte, err error) {
+func (c *client) Step(challenge []byte) (more bool, resp []byte, err error) {
 	if c.state&Errored == Errored {
 		panic("sasl: Step called on a SASL state machine that has errored")
 	}
@@ -71,12 +71,17 @@ func (c *Machine) Step(challenge []byte) (more bool, resp []byte, err error) {
 }
 
 // State returns the internal state of the SASL state machine.
-func (c *Machine) State() State {
+func (c *client) State() State {
 	return c.state
 }
 
 // Reset resets the state machine to its initial state so that it can be reused
 // in another SASL exchange.
-func (c *Machine) Reset() {
+func (c *client) Reset() {
 	c.state = c.state & (Receiving | RemoteCB)
+}
+
+// Config returns the clients configuration.
+func (c *client) Config() Config {
+	return c.config
 }

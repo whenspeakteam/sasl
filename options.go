@@ -6,22 +6,32 @@ package sasl
 
 import (
 	"crypto/tls"
-	"strings"
 )
 
 // An Option represents an input to a SASL state machine.
-type Option func(*Machine)
+type Option func(*Config)
 
-func getOpts(m *Machine, o ...Option) {
+// Config is a SASL client or server configuration.
+type Config struct {
+	// The state of any TLS connections being used to negotiate SASL (for channel
+	// binding).
+	TLSState *tls.ConnectionState
+
+	// A list of mechanisms as advertised by the other side of a SASL negotiation.
+	RemoteMechanisms []string
+}
+
+func getOpts(o ...Option) (cfg Config) {
 	for _, f := range o {
-		f(m)
+		f(&cfg)
 	}
+	return
 }
 
 // The ConnState option lets the state machine negotiate channel binding with a
 // TLS session if supported by the underlying mechanism.
 func ConnState(cs tls.ConnectionState) Option {
-	return func(o *Machine) {
+	return func(o *Config) {
 		o.TLSState = &cs
 	}
 }
@@ -31,16 +41,7 @@ func ConnState(cs tls.ConnectionState) Option {
 // to determine if the server supports channel binding and is required for
 // proper support.
 func RemoteMechanisms(m []string) Option {
-	return func(o *Machine) {
+	return func(o *Config) {
 		o.RemoteMechanisms = m
-
-		for _, lname := range o.mechanism.Names {
-			for _, rname := range m {
-				if lname == rname && strings.HasSuffix(lname, "-PLUS") {
-					o.state |= RemoteCB
-					return
-				}
-			}
-		}
 	}
 }

@@ -17,10 +17,10 @@ var plainSep = []byte{0}
 func Plain(identity, username, password string) Mechanism {
 	return Mechanism{
 		Names: []string{"PLAIN"},
-		Start: func(m *Machine) (bool, []byte, error) {
+		Start: func(m Negotiator) (bool, []byte, error) {
 			return false, []byte(identity + "\x00" + username + "\x00" + password), nil
 		},
-		Next: func(m *Machine, challenge []byte) (bool, []byte, error) {
+		Next: func(m Negotiator, challenge []byte) (bool, []byte, error) {
 			if m.State()&Receiving != Receiving || m.State()&stateMask != AuthTextSent {
 				return false, nil, ErrTooManySteps
 			}
