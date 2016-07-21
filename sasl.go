@@ -16,8 +16,9 @@ var (
 )
 
 // State represents the current state of a client or server's underlying state
-// machine. The first two bits represent the actual state of the client or
-// server and the last 3 bits are a bitmask that encode other state information.
+// machine. The first two bits represent the current state of the client or
+// server and the last 3 bits are a bitmask that represent global properties of
+// the state machine.
 type State uint8
 
 const (
