@@ -9,7 +9,7 @@ import (
 )
 
 // A Negotiator represents a SASL client or server state machine that can
-// attempt to negotiate auth. Machines should not be used from multiple
+// attempt to negotiate auth. Negotiators should not be used from multiple
 // goroutines, and must be reset between negotiation attempts.
 type Negotiator interface {
 	Step(challenge []byte) (more bool, resp []byte, err error)
@@ -42,8 +42,8 @@ func NewClient(m Mechanism, opts ...Option) Negotiator {
 }
 
 // Step attempts to transition the state machine to its next state. If Step is
-// called after a previous invocation generates an error (and the Machine has
-// not been reset to its initial state), Step panics.
+// called after a previous invocation generates an error (and the state machine
+// has not been reset to its initial state), Step panics.
 func (c *client) Step(challenge []byte) (more bool, resp []byte, err error) {
 	if c.state&Errored == Errored {
 		panic("sasl: Step called on a SASL state machine that has errored")
