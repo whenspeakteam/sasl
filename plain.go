@@ -15,9 +15,7 @@ var plainSep = []byte{0}
 // username.
 func Plain(identity, username, password string) Mechanism {
 	return Mechanism{
-		Name: func(n Negotiator) string {
-			return "PLAIN"
-		},
+		Name: "PLAIN",
 		Start: func(m Negotiator) (bool, []byte, error) {
 			return false, []byte(identity + "\x00" + username + "\x00" + password), nil
 		},

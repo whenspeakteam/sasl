@@ -49,9 +49,7 @@ func scram(authzid, username, password, name string, clientNonce []byte, fn func
 	}
 
 	return Mechanism{
-		Name: func(n Negotiator) string {
-			return name
-		},
+		Name: name,
 		Start: func(m Negotiator) (bool, []byte, error) {
 			// TODO(ssw): Use the correct PRECIS profile on username.
 			clientFirstMessage = append([]byte("n="+username+",r="), clientNonce...)

@@ -60,7 +60,7 @@ func NewClient(m Mechanism, opts ...Option) Negotiator {
 		mechanism: m,
 	}
 	for _, rname := range machine.config.RemoteMechanisms {
-		lname := m.Name(machine)
+		lname := m.Name
 		if lname == rname && strings.HasSuffix(lname, "-PLUS") {
 			machine.state |= RemoteCB
 			return machine
