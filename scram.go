@@ -32,6 +32,9 @@ var (
 // The number of random bytes to generate for a nonce.
 const noncerandlen = 16
 
+// BUG(ssw): Nonce generation should happen in the negotiator so that a new
+//           nonce can be generated every time it is reset.
+
 func scram(authzid, username, password string, names []string, clientNonce []byte, fn func() hash.Hash) Mechanism {
 	iter := -1
 	var salt, nonce, clientFirstMessage, serverSignature []byte
