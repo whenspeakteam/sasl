@@ -27,12 +27,8 @@ const (
 )
 
 const (
-	// Bit is on if the Negotiator supports channel binding, regardless of whether
-	// the underlying mechanism actually supports it.
-	LocalCB State = 1 << (iota + 4)
-
 	// Bit is on if the remote client or server supports channel binding.
-	RemoteCB
+	RemoteCB = 1 << (iota + 3)
 
 	// Bit is on if the machine has errored.
 	Errored
@@ -63,12 +59,11 @@ func NewClient(m Mechanism, opts ...Option) Negotiator {
 		config:    getOpts(opts...),
 		mechanism: m,
 	}
-	for _, lname := range m.Names {
-		for _, rname := range machine.config.RemoteMechanisms {
-			if lname == rname && strings.HasSuffix(lname, "-PLUS") {
-				machine.state |= RemoteCB
-				return machine
-			}
+	for _, rname := range machine.config.RemoteMechanisms {
+		lname := m.Name(machine)
+		if lname == rname && strings.HasSuffix(lname, "-PLUS") {
+			machine.state |= RemoteCB
+			return machine
 		}
 	}
 	return machine

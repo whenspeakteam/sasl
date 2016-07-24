@@ -27,7 +27,7 @@ var (
 //
 // Mechanisms must be stateless and may be shared between goroutines.
 type Mechanism struct {
-	Names []string
+	Name  func(n Negotiator) string
 	Start func(n Negotiator) (more bool, resp []byte, err error)
 	Next  func(n Negotiator, challenge []byte) (more bool, resp []byte, err error)
 }

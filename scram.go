@@ -35,7 +35,7 @@ const noncerandlen = 16
 // BUG(ssw): Nonce generation should happen in the negotiator so that a new
 //           nonce can be generated every time it is reset.
 
-func scram(authzid, username, password string, names []string, clientNonce []byte, fn func() hash.Hash) Mechanism {
+func scram(authzid, username, password, name string, clientNonce []byte, fn func() hash.Hash) Mechanism {
 	iter := -1
 	var salt, nonce, clientFirstMessage, serverSignature []byte
 	var gs2Header []byte
@@ -49,13 +49,15 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 	}
 
 	return Mechanism{
-		Names: names,
+		Name: func(n Negotiator) string {
+			return name
+		},
 		Start: func(m Negotiator) (bool, []byte, error) {
 			// TODO(ssw): Use the correct PRECIS profile on username.
 			clientFirstMessage = append([]byte("n="+username+",r="), clientNonce...)
 
 			switch {
-			case m.Config().TLSState == nil:
+			case m.Config().TLSState == nil || !strings.HasSuffix(name, "-PLUS"):
 				// We do not support channel binding
 				gs2Header = []byte(gs2HeaderNoCBSupport + authzid + ",")
 			case m.State()&RemoteCB == RemoteCB:
@@ -127,7 +129,7 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 				}
 
 				var channelBinding []byte
-				if m.Config().TLSState != nil {
+				if m.Config().TLSState != nil && strings.HasSuffix(name, "-PLUS") {
 					channelBinding = make(
 						[]byte,
 						2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(m.Config().TLSState.TLSUnique)),
@@ -204,28 +206,32 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 	}
 }
 
-// ScramSha1 returns a Mechanism that implements the SCRAM-SHA-1 and
-// SCRAM-SHA-1-PLUS authentication mechanisms defined in RFC 5802. The only
-// supported channel binding type is tls-unique as defined in RFC 5929. The plus
-// argument indicates that the server advertised support for channel binding and
-// is used to help prevent downgrade attacks. Each call to the function returns
-// a new Mechanism with its own internal state.
-func ScramSha1(identity, username, password string) Mechanism {
-	return scram(identity, username, password, []string{
-		"SCRAM-SHA-1",
-		"SCRAM-SHA-1-PLUS",
-	}, nonce(noncerandlen, cryptoReader{}), sha1.New)
+// ScramSha1Plus returns a Mechanism that implements the SCRAM-SHA-1-PLUS
+// authentication mechanism defined in RFC 5802. The only supported channel
+// binding type is tls-unique as defined in RFC 5929. Each call to the function
+// returns a new Mechanism with its own internal state.
+func ScramSha1Plus(identity, username, password string) Mechanism {
+	return scram(identity, username, password, "SCRAM-SHA-1-PLUS", nonce(noncerandlen, cryptoReader{}), sha1.New)
 }
 
-// ScramSha256 returns a Mechanism that implements the SCRAM-SHA-256 and
-// SCRAM-SHA-256-PLUS authentication mechanisms defined in RFC 7677. The only
-// supported channel binding type is tls-unique as defined in RFC 5929. The plus
-// argument indicates that the server advertised support for channel binding and
-// is used to help prevent downgrade attacks. Each call to the function returns
-// a new Mechanism with its own internal state.
+// ScramSha256Plus returns a Mechanism that implements the SCRAM-SHA-256-PLUS
+// authentication mechanism defined in RFC 7677. The only supported channel
+// binding type is tls-unique as defined in RFC 5929. Each call to the function
+// returns a new Mechanism with its own internal state.
+func ScramSha256Plus(identity, username, password string) Mechanism {
+	return scram(identity, username, password, "SCRAM-SHA-256-PLUS", nonce(noncerandlen, cryptoReader{}), sha256.New)
+}
+
+// ScramSha1 returns a Mechanism that implements the SCRAM-SHA-1 authentication
+// mechanism defined in RFC 5802. Each call to the function returns a new
+// Mechanism with its own internal state.
+func ScramSha1(identity, username, password string) Mechanism {
+	return scram(identity, username, password, "SCRAM-SHA-1-PLUS", nonce(noncerandlen, cryptoReader{}), sha1.New)
+}
+
+// ScramSha256 returns a Mechanism that implements the SCRAM-SHA-256
+// authentication mechanism defined in RFC 7677. Each call to the function
+// returns a new Mechanism with its own internal state.
 func ScramSha256(identity, username, password string) Mechanism {
-	return scram(identity, username, password, []string{
-		"SCRAM-SHA-256",
-		"SCRAM-SHA-256-PLUS",
-	}, nonce(noncerandlen, cryptoReader{}), sha256.New)
+	return scram(identity, username, password, "SCRAM-SHA-256-PLUS", nonce(noncerandlen, cryptoReader{}), sha256.New)
 }

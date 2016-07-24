@@ -22,7 +22,30 @@ var clientTestCases = testCases{
 			saslStep{challenge: nil, resp: nil, err: true, more: false},
 		},
 	}, {
-		machine: NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New)),
+		machine: NewClient(scram("", "user", "pencil", "SCRAM-SHA-1", []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New)),
+		steps: []saslStep{
+			saslStep{
+				challenge: nil,
+				resp:      []byte(base64.StdEncoding.EncodeToString([]byte(`n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL`))),
+				err:       false, more: true,
+			},
+			saslStep{
+				challenge: []byte(base64.StdEncoding.EncodeToString([]byte(`r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096`))),
+				resp:      []byte(base64.StdEncoding.EncodeToString([]byte(`c=biws,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=`))),
+				err:       false, more: true,
+			},
+			saslStep{
+				challenge: []byte(base64.StdEncoding.EncodeToString([]byte(`v=rmF9pqV8S7suAoZWja4dJRkFsKQ=`))),
+				resp:      nil,
+				err:       false, more: false,
+			},
+		},
+	}, {
+		// Mechanism is not SCRAM-SHA-1-PLUS, but has connstate and remote mechanisms.
+		machine: NewClient(scram("", "user", "pencil", "SCRAM-SHA-1", []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New),
+			RemoteMechanisms("SCRAM-SHA-1-PLUS", "SCRAM-SHA-1"),
+			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
+		),
 		steps: []saslStep{
 			saslStep{
 				challenge: nil,
@@ -42,7 +65,7 @@ var clientTestCases = testCases{
 		},
 	}, {
 		machine: NewClient(
-			scram("", "user", "pencil", []string{"SCRAM-SHA-1-PLUS"}, []byte("16090868851744577"), sha1.New),
+			scram("", "user", "pencil", "SCRAM-SHA-1-PLUS", []byte("16090868851744577"), sha1.New),
 			RemoteMechanisms("SCRAM-SHA-1-PLUS"),
 			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
 		),
@@ -64,7 +87,7 @@ var clientTestCases = testCases{
 			},
 		},
 	}, {
-		machine: NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-256"}, []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New)),
+		machine: NewClient(scram("", "user", "pencil", "SCRAM-SHA-256", []byte("rOprNGfwEbeRWgbNEkqO"), sha256.New)),
 		steps: []saslStep{
 			saslStep{
 				challenge: []byte{},
@@ -84,7 +107,7 @@ var clientTestCases = testCases{
 		},
 	}, {
 		machine: NewClient(
-			scram("admin", "user", "pencil", []string{"SCRAM-SHA-256-PLUS"}, []byte("12249535949609558"), sha256.New),
+			scram("admin", "user", "pencil", "SCRAM-SHA-256-PLUS", []byte("12249535949609558"), sha256.New),
 			RemoteMechanisms("SCRAM-SOMETHING", "SCRAM-SHA-256-PLUS"),
 			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
 		),
@@ -107,7 +130,7 @@ var clientTestCases = testCases{
 		},
 	}, {
 		machine: NewClient(
-			scram("", ",=,=", "password", []string{"SCRAM-SHA-1-PLUS"}, []byte("ournonce"), sha1.New),
+			scram("", ",=,=", "password", "SCRAM-SHA-1-PLUS", []byte("ournonce"), sha1.New),
 			RemoteMechanisms("SCRAM-SHA-1-PLUS"),
 			ConnState(tls.ConnectionState{TLSUnique: []byte("finishedmessage")}),
 		),

@@ -51,7 +51,7 @@ func TestSASL(t *testing.T) {
 
 func BenchmarkScram(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		c := NewClient(scram("", "user", "pencil", []string{"SCRAM-SHA-1"}, []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New))
+		c := NewClient(scram("", "user", "pencil", "SCRAM-SHA-1", []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New))
 		for _, step := range clientTestCases.cases[0].steps {
 			more, _, _ := c.Step(step.challenge)
 			if !more {

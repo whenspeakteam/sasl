@@ -30,12 +30,12 @@ var serverTestCases = testCases{
 			saslStep{challenge: plainResp, resp: plainResp, err: false, more: false},
 		},
 	}, {
-		machine: newServer(scram("", "", "", nil, nil, nil)),
+		machine: newServer(scram("", "", "", "", nil, nil)),
 		steps: []saslStep{
 			saslStep{challenge: nil, resp: nil, err: true, more: false},
 		},
 	}, {
-		machine: newServer(scram("", "", "", nil, nil, nil)),
+		machine: newServer(scram("", "", "", "", nil, nil)),
 		steps: []saslStep{
 			saslStep{challenge: []byte{}, resp: nil, err: true, more: false},
 		},
