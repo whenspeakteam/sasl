@@ -22,7 +22,7 @@ func Plain(identity, username, password string) Mechanism {
 		Next: func(m Negotiator, challenge []byte) (bool, []byte, error) {
 			// If we're a client or a server that's past the AuthTextSent step, we
 			// should never actually hit this step.
-			if m.State()&Receiving != Receiving || m.State()&stateMask != AuthTextSent {
+			if m.State()&Receiving != Receiving || m.State()&StepMask != AuthTextSent {
 				return false, nil, ErrTooManySteps
 			}
 

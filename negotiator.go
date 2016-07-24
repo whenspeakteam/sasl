@@ -15,10 +15,6 @@ import (
 type State uint8
 
 const (
-	stateMask = 0x3
-)
-
-const (
 	// The current step of the Server or Client (represented by the first two bits
 	// of the state byte).
 	Initial State = iota
@@ -26,14 +22,22 @@ const (
 	ResponseSent
 	ValidServerResponse
 
+	StepMask = 0x3
+)
+
+const (
+	// Bit is on if the Negotiator supports channel binding, regardless of whether
+	// the underlying mechanism actually supports it.
+	LocalCB State = 1 << (iota + 4)
+
 	// Bit is on if the remote client or server supports channel binding.
-	RemoteCB State = 1 << 5
+	RemoteCB
 
 	// Bit is on if the machine has errored.
-	Errored State = 1 << 6
+	Errored
 
 	// Bit is on if the machine is a server.
-	Receiving State = 1 << 7
+	Receiving
 )
 
 // A Negotiator represents a SASL client or server state machine that can
@@ -77,16 +81,16 @@ func (c *client) Step(challenge []byte) (more bool, resp []byte, err error) {
 		panic("sasl: Step called on a SASL state machine that has errored")
 	}
 
-	switch c.state & stateMask {
+	switch c.state & StepMask {
 	case Initial:
 		more, resp, err = c.mechanism.Start(c)
-		c.state = c.state&^stateMask | AuthTextSent
+		c.state = c.state&^StepMask | AuthTextSent
 	case AuthTextSent:
 		more, resp, err = c.mechanism.Next(c, challenge)
-		c.state = c.state&^stateMask | ResponseSent
+		c.state = c.state&^StepMask | ResponseSent
 	case ResponseSent:
 		more, resp, err = c.mechanism.Next(c, challenge)
-		c.state = c.state&^stateMask | ValidServerResponse
+		c.state = c.state&^StepMask | ValidServerResponse
 	case ValidServerResponse:
 		more, resp, err = c.mechanism.Next(c, challenge)
 	}
@@ -110,7 +114,7 @@ func (c *client) Reset() {
 
 	// Skip the start step for servers
 	if c.state&Receiving == Receiving {
-		c.state = c.state&^stateMask | AuthTextSent
+		c.state = c.state&^StepMask | AuthTextSent
 	}
 }
 

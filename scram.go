@@ -79,7 +79,7 @@ func scram(authzid, username, password string, names []string, clientNonce []byt
 				panic("sasl: Server side of SCRAM not yet implemented")
 			}
 
-			switch state & stateMask {
+			switch state & StepMask {
 			case AuthTextSent:
 				serverFirstMessage := make([]byte, base64.StdEncoding.DecodedLen(len(challenge)))
 				n, err := base64.StdEncoding.Decode(serverFirstMessage, challenge)
