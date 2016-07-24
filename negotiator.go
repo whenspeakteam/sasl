@@ -22,6 +22,7 @@ const (
 	ResponseSent
 	ValidServerResponse
 
+	// Bitmask used for extracting the step from the state byte.
 	StepMask = 0x3
 )
 
