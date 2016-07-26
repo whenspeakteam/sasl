@@ -5,6 +5,7 @@
 package sasl
 
 import (
+	"encoding/base64"
 	"strings"
 )
 
@@ -41,6 +42,10 @@ const (
 // attempt to negotiate auth. Negotiators should not be used from multiple
 // goroutines, and must be reset between negotiation attempts.
 type Negotiator interface {
+	// Step is responsible for advancing the state machine and using the
+	// underlying mechanism. It should base64 decode the challenge (using the
+	// standard base64 encoding) and base64 encode the response generated from the
+	// underlying mechanism before returning it.
 	Step(challenge []byte) (more bool, resp []byte, err error)
 	State() State
 	Config() Config
@@ -76,26 +81,41 @@ func (c *client) Step(challenge []byte) (more bool, resp []byte, err error) {
 	if c.state&Errored == Errored {
 		panic("sasl: Step called on a SASL state machine that has errored")
 	}
+	defer func() {
+		if err != nil {
+			c.state = c.state | Errored
+		}
+	}()
+
+	decodedChallenge := make([]byte, base64.StdEncoding.DecodedLen(len(challenge)))
+	n, err := base64.StdEncoding.Decode(decodedChallenge, challenge)
+	if err != nil {
+		return false, nil, err
+	}
+	decodedChallenge = decodedChallenge[:n]
 
 	switch c.state & StepMask {
 	case Initial:
 		more, resp, err = c.mechanism.Start(c)
 		c.state = c.state&^StepMask | AuthTextSent
 	case AuthTextSent:
-		more, resp, err = c.mechanism.Next(c, challenge)
+		more, resp, err = c.mechanism.Next(c, decodedChallenge)
 		c.state = c.state&^StepMask | ResponseSent
 	case ResponseSent:
-		more, resp, err = c.mechanism.Next(c, challenge)
+		more, resp, err = c.mechanism.Next(c, decodedChallenge)
 		c.state = c.state&^StepMask | ValidServerResponse
 	case ValidServerResponse:
-		more, resp, err = c.mechanism.Next(c, challenge)
+		more, resp, err = c.mechanism.Next(c, decodedChallenge)
 	}
 
 	if err != nil {
-		c.state = c.state | Errored
+		return false, nil, err
 	}
 
-	return more, resp, err
+	encodedResp := make([]byte, base64.StdEncoding.EncodedLen(len(resp)))
+	base64.StdEncoding.Encode(encodedResp, resp)
+
+	return more, encodedResp, err
 }
 
 // State returns the internal state of the SASL state machine.

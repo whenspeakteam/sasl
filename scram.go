@@ -65,10 +65,7 @@ func scram(authzid, username, password, name string, clientNonce []byte, fn func
 				// We support channel binding but the server does not
 				gs2Header = []byte(gs2HeaderNoServerCBSupport + authzid + ",")
 			}
-			unencoded := append(gs2Header, clientFirstMessage...)
-			b := make([]byte, base64.StdEncoding.EncodedLen(len(unencoded)))
-			base64.StdEncoding.Encode(b, unencoded)
-			return true, b, nil
+			return true, append(gs2Header, clientFirstMessage...), nil
 		},
 		Next: func(m Negotiator, challenge []byte) (bool, []byte, error) {
 			state := m.State()
@@ -81,13 +78,8 @@ func scram(authzid, username, password, name string, clientNonce []byte, fn func
 
 			switch state & StepMask {
 			case AuthTextSent:
-				serverFirstMessage := make([]byte, base64.StdEncoding.DecodedLen(len(challenge)))
-				n, err := base64.StdEncoding.Decode(serverFirstMessage, challenge)
-				serverFirstMessage = serverFirstMessage[:n]
-				if err != nil {
-					return false, nil, err
-				}
-				for _, field := range bytes.Split(serverFirstMessage, []byte{','}) {
+				var err error
+				for _, field := range bytes.Split(challenge, []byte{','}) {
 					if len(field) < 3 && field[1] != '=' {
 						continue
 					}
@@ -118,8 +110,10 @@ func scram(authzid, username, password, name string, clientNonce []byte, fn func
 				}
 
 				switch {
-				case iter <= 0:
-					return false, nil, errors.New("Iteration count is missing or invalid")
+				case iter < 0:
+					return false, nil, errors.New("Iteration count is missing")
+				case iter < 0:
+					return false, nil, errors.New("Iteration count is invalid")
 				case nonce == nil || !bytes.HasPrefix(nonce, clientNonce):
 					return false, nil, errors.New("Server nonce does not match client nonce")
 				case salt == nil:
@@ -148,7 +142,7 @@ func scram(authzid, username, password, name string, clientNonce []byte, fn func
 				clientFinalMessageWithoutProof = append(clientFinalMessageWithoutProof, nonce...)
 
 				authMessage := append(clientFirstMessage, ',')
-				authMessage = append(authMessage, serverFirstMessage...)
+				authMessage = append(authMessage, challenge...)
 				authMessage = append(authMessage, ',')
 				authMessage = append(authMessage, clientFinalMessageWithoutProof...)
 
@@ -182,18 +176,10 @@ func scram(authzid, username, password, name string, clientNonce []byte, fn func
 				clientFinalMessage := append(clientFinalMessageWithoutProof, []byte(",p=")...)
 				clientFinalMessage = append(clientFinalMessage, encodedClientProof...)
 
-				encodedClientFinalMessage := make([]byte, base64.StdEncoding.EncodedLen(len(clientFinalMessage)))
-				base64.StdEncoding.Encode(encodedClientFinalMessage, clientFinalMessage)
-				return true, encodedClientFinalMessage, nil
+				return true, clientFinalMessage, nil
 			case ResponseSent:
 				clientCalculatedServerFinalMessage := "v=" + base64.StdEncoding.EncodeToString(serverSignature)
-				serverFinalMessage := make([]byte, base64.StdEncoding.DecodedLen(len(challenge)))
-				n, err := base64.StdEncoding.Decode(serverFinalMessage, challenge)
-				if err != nil {
-					return false, nil, err
-				}
-				serverFinalMessage = serverFinalMessage[:n]
-				if clientCalculatedServerFinalMessage != string(serverFinalMessage) {
+				if clientCalculatedServerFinalMessage != string(challenge) {
 					return false, nil, ErrAuthn
 				}
 				// Success!

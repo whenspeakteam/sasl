@@ -6,6 +6,7 @@ package sasl
 
 import (
 	"crypto/sha1"
+	"encoding/base64"
 	"testing"
 )
 
@@ -26,22 +27,51 @@ type testCases struct {
 	cases []saslTest
 }
 
+func getStepName(n Negotiator) string {
+	switch n.State() & StepMask {
+	case Initial:
+		return "Initial"
+	case AuthTextSent:
+		return "AuthTextSent"
+	case ResponseSent:
+		return "ResponseSent"
+	case ValidServerResponse:
+		return "ValidServerResponse"
+	default:
+		panic("Step part of state byte apparently has too many bits")
+	}
+}
+
 func TestSASL(t *testing.T) {
 	doTests(t, []testCases{clientTestCases, serverTestCases}, func(t *testing.T, test saslTest) {
 		// Run each test twice to make srue that Reset actually sets the state back
 		// to the initial state.
 		for run := 1; run < 3; run++ {
-			for i, step := range test.steps {
-				more, resp, err := test.machine.Step(step.challenge)
+			for _, step := range test.steps {
+				more, resp, err := test.machine.Step(
+					[]byte(base64.StdEncoding.EncodeToString(step.challenge)),
+				)
 				switch {
 				case err != nil && test.machine.State()&Errored != Errored:
-					t.Fatalf("Run %d: State machine internal error state was not set, got error: %v", run, err)
+					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
+					t.Fatalf("State machine internal error state was not set, got error: %v", err)
 				case err == nil && test.machine.State()&Errored == Errored:
-					t.Fatalf("Run %d: State machine internal error state was set, but no error was returned", run)
-				case string(step.resp) != string(resp):
-					t.Fatalf("Run %d: Got invalid challenge text during step %d:\nexpected %s\n     got %s", run, i+1, step.resp, resp)
+					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
+					t.Fatal("State machine internal error state was set, but no error was returned")
+				case err == nil && step.err:
+					// There was no error, but we expect one
+					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
+					t.Fatal("Expected SASL step to error")
+				case err != nil && !step.err:
+					// There was an error, but we didn't expect one
+					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
+					t.Fatalf("Got unexpected SASL error: %v", err)
+				case base64.StdEncoding.EncodeToString(step.resp) != string(resp):
+					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
+					t.Fatalf("Got invalid challenge text:\nexpected %s\n     got %s", step.resp, resp)
 				case more != step.more:
-					t.Fatalf("Run %d: Got unexpected value for more: %v", run, more)
+					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
+					t.Fatalf("Got unexpected value for more: %v", more)
 				}
 			}
 			test.machine.Reset()

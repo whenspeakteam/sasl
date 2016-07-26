@@ -23,7 +23,8 @@ var (
 //            actually stores the state).
 
 // Mechanism represents a SASL mechanism that can be used by a Client or Server
-// to perform the actual negotiation.
+// to perform the actual negotiation. Base64 encoding the final challenges and
+// responses should not be performed by the mechanism.
 //
 // Mechanisms must be stateless and may be shared between goroutines.
 type Mechanism struct {
