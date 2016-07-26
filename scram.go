@@ -206,30 +206,26 @@ func scram(authzid, username, password, name string, clientNonce []byte, fn func
 
 // ScramSha1Plus returns a Mechanism that implements the SCRAM-SHA-1-PLUS
 // authentication mechanism defined in RFC 5802. The only supported channel
-// binding type is tls-unique as defined in RFC 5929. Each call to the function
-// returns a new Mechanism with its own internal state.
+// binding type is tls-unique as defined in RFC 5929.
 func ScramSha1Plus(identity, username, password string) Mechanism {
 	return scram(identity, username, password, "SCRAM-SHA-1-PLUS", nonce(noncerandlen, cryptoReader{}), sha1.New)
 }
 
 // ScramSha256Plus returns a Mechanism that implements the SCRAM-SHA-256-PLUS
 // authentication mechanism defined in RFC 7677. The only supported channel
-// binding type is tls-unique as defined in RFC 5929. Each call to the function
-// returns a new Mechanism with its own internal state.
+// binding type is tls-unique as defined in RFC 5929.
 func ScramSha256Plus(identity, username, password string) Mechanism {
 	return scram(identity, username, password, "SCRAM-SHA-256-PLUS", nonce(noncerandlen, cryptoReader{}), sha256.New)
 }
 
 // ScramSha1 returns a Mechanism that implements the SCRAM-SHA-1 authentication
-// mechanism defined in RFC 5802. Each call to the function returns a new
-// Mechanism with its own internal state.
+// mechanism defined in RFC 5802.
 func ScramSha1(identity, username, password string) Mechanism {
 	return scram(identity, username, password, "SCRAM-SHA-1", nonce(noncerandlen, cryptoReader{}), sha1.New)
 }
 
 // ScramSha256 returns a Mechanism that implements the SCRAM-SHA-256
-// authentication mechanism defined in RFC 7677. Each call to the function
-// returns a new Mechanism with its own internal state.
+// authentication mechanism defined in RFC 7677.
 func ScramSha256(identity, username, password string) Mechanism {
 	return scram(identity, username, password, "SCRAM-SHA-256", nonce(noncerandlen, cryptoReader{}), sha256.New)
 }
