@@ -15,27 +15,27 @@ func newServer(m Mechanism) Negotiator {
 var serverTestCases = testCases{
 	name: "Server",
 	cases: []saslTest{{
-		machine: newServer(Plain("", "", "")),
+		machine: newServer(plain),
 		steps: []saslStep{
 			saslStep{challenge: []byte("Ursel\x00Kurt\x00xipj3plmq\x00"), resp: nil, err: true, more: false},
 		},
 	}, {
-		machine: newServer(Plain("", "", "")),
+		machine: newServer(plain),
 		steps: []saslStep{
 			saslStep{challenge: []byte("\x00Ursel\x00Kurt\x00xipj3plmq"), resp: nil, err: true, more: false},
 		},
 	}, {
-		machine: newServer(Plain("", "", "")),
+		machine: newServer(plain),
 		steps: []saslStep{
 			saslStep{challenge: plainResp, resp: plainResp, err: false, more: false},
 		},
 	}, {
-		machine: newServer(scram("", "", "", "", nil, nil)),
+		machine: newServer(scram("", nil)),
 		steps: []saslStep{
 			saslStep{challenge: nil, resp: nil, err: true, more: false},
 		},
 	}, {
-		machine: newServer(scram("", "", "", "", nil, nil)),
+		machine: newServer(scram("", nil)),
 		steps: []saslStep{
 			saslStep{challenge: []byte{}, resp: nil, err: true, more: false},
 		},

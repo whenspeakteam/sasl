@@ -47,6 +47,10 @@ func TestSASL(t *testing.T) {
 		// Run each test twice to make srue that Reset actually sets the state back
 		// to the initial state.
 		for run := 1; run < 3; run++ {
+			// Reset the nonce to the one used by all of our test vectors.
+			if c, ok := test.machine.(*client); ok {
+				c.nonce = []byte("fyko+d2lbbFgONRv9qkxdawL")
+			}
 			for _, step := range test.steps {
 				more, resp, err := test.machine.Step(
 					[]byte(base64.StdEncoding.EncodeToString(step.challenge)),
@@ -68,7 +72,8 @@ func TestSASL(t *testing.T) {
 					t.Fatalf("Got unexpected SASL error: %v", err)
 				case base64.StdEncoding.EncodeToString(step.resp) != string(resp):
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
-					t.Fatalf("Got invalid challenge text:\nexpected %s\n     got %s", step.resp, resp)
+					decoded, _ := base64.StdEncoding.DecodeString(string(resp))
+					t.Fatalf("Got invalid challenge text:\nexpected %s\n     got %s", step.resp, decoded)
 				case more != step.more:
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
 					t.Fatalf("Got unexpected value for more: %v", more)
@@ -81,7 +86,10 @@ func TestSASL(t *testing.T) {
 
 func BenchmarkScram(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		c := NewClient(scram("", "user", "pencil", "SCRAM-SHA-1", []byte("fyko+d2lbbFgONRv9qkxdawL"), sha1.New))
+		c := NewClient(
+			scram("SCRAM-SHA-1", sha1.New),
+			Credentials("user", "pencil"),
+		)
 		for _, step := range clientTestCases.cases[0].steps {
 			more, _, _ := c.Step(step.challenge)
 			if !more {

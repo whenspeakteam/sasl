@@ -49,6 +49,7 @@ type Negotiator interface {
 	Step(challenge []byte) (more bool, resp []byte, err error)
 	State() State
 	Config() Config
+	Nonce() []byte
 	Reset()
 }
 
@@ -56,6 +57,7 @@ type client struct {
 	config    Config
 	mechanism Mechanism
 	state     State
+	nonce     []byte
 }
 
 // NewClient creates a new SASL client that supports the given mechanism.
@@ -63,6 +65,7 @@ func NewClient(m Mechanism, opts ...Option) Negotiator {
 	machine := &client{
 		config:    getOpts(opts...),
 		mechanism: m,
+		nonce:     nonce(noncerandlen, cryptoReader{}),
 	}
 	for _, rname := range machine.config.RemoteMechanisms {
 		lname := m.Name
@@ -72,6 +75,10 @@ func NewClient(m Mechanism, opts ...Option) Negotiator {
 		}
 	}
 	return machine
+}
+
+func (c *client) Nonce() []byte {
+	return c.nonce
 }
 
 // Step attempts to transition the state machine to its next state. If Step is
@@ -132,6 +139,8 @@ func (c *client) Reset() {
 	if c.state&Receiving == Receiving {
 		c.state = c.state&^StepMask | AuthTextSent
 	}
+
+	c.nonce = nonce(noncerandlen, cryptoReader{})
 }
 
 // Config returns the clients configuration.

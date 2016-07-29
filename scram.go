@@ -7,10 +7,9 @@ package sasl
 import (
 	"bytes"
 	"crypto/hmac"
-	"crypto/sha1"
-	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"hash"
 	"strconv"
 	"strings"
@@ -32,39 +31,44 @@ var (
 // The number of random bytes to generate for a nonce.
 const noncerandlen = 16
 
-// BUG(ssw): Nonce generation should happen in the negotiator so that a new
-//           nonce can be generated every time it is reset.
-
-func scram(authzid, username, password, name string, clientNonce []byte, fn func() hash.Hash) Mechanism {
+func scram(name string, fn func() hash.Hash) Mechanism {
 	iter := -1
 	var salt, nonce, clientFirstMessage, serverSignature []byte
 	var gs2Header []byte
 
-	// TODO(ssw): This could probably be done faster and in one pass.
-	username = strings.Replace(username, "=", "=3D", -1)
-	username = strings.Replace(username, ",", "=2C", -1)
-
-	if authzid != "" {
-		authzid = "a=" + authzid
-	}
+	var authzid, username, password []byte
 
 	return Mechanism{
 		Name: name,
 		Start: func(m Negotiator) (bool, []byte, error) {
-			// TODO(ssw): Use the correct PRECIS profile on username.
-			clientFirstMessage = append([]byte("n="+username+",r="), clientNonce...)
+			c := m.Config()
+
+			// TODO(ssw): This could probably be done faster and in one pass.
+			username = bytes.Replace(c.Username, []byte{'='}, []byte("=3D"), -1)
+			username = bytes.Replace(username, []byte{','}, []byte("=2C"), -1)
+
+			if len(c.Identity) != 0 {
+				authzid = append([]byte("a="), c.Identity...)
+			}
+
+			password = c.Password
+
+			clientFirstMessage = append([]byte("n="), username...)
+			clientFirstMessage = append(clientFirstMessage, []byte(",r=")...)
+			clientFirstMessage = append(clientFirstMessage, m.Nonce()...)
 
 			switch {
 			case m.Config().TLSState == nil || !strings.HasSuffix(name, "-PLUS"):
 				// We do not support channel binding
-				gs2Header = []byte(gs2HeaderNoCBSupport + authzid + ",")
+				gs2Header = append([]byte(gs2HeaderNoCBSupport), authzid...)
 			case m.State()&RemoteCB == RemoteCB:
 				// We support channel binding and the server does too
-				gs2Header = []byte(gs2HeaderCBSupport + authzid + ",")
+				gs2Header = append([]byte(gs2HeaderCBSupport), authzid...)
 			case m.State()&RemoteCB != RemoteCB:
 				// We support channel binding but the server does not
-				gs2Header = []byte(gs2HeaderNoServerCBSupport + authzid + ",")
+				gs2Header = append([]byte(gs2HeaderNoServerCBSupport), authzid...)
 			}
+			gs2Header = append(gs2Header, ',')
 			return true, append(gs2Header, clientFirstMessage...), nil
 		},
 		Next: func(m Negotiator, challenge []byte) (bool, []byte, error) {
@@ -114,7 +118,7 @@ func scram(authzid, username, password, name string, clientNonce []byte, fn func
 					return false, nil, errors.New("Iteration count is missing")
 				case iter < 0:
 					return false, nil, errors.New("Iteration count is invalid")
-				case nonce == nil || !bytes.HasPrefix(nonce, clientNonce):
+				case nonce == nil || !bytes.HasPrefix(nonce, m.Nonce()):
 					return false, nil, errors.New("Server nonce does not match client nonce")
 				case salt == nil:
 					return false, nil, errors.New("Server sent empty salt")
@@ -180,6 +184,7 @@ func scram(authzid, username, password, name string, clientNonce []byte, fn func
 			case ResponseSent:
 				clientCalculatedServerFinalMessage := "v=" + base64.StdEncoding.EncodeToString(serverSignature)
 				if clientCalculatedServerFinalMessage != string(challenge) {
+					fmt.Printf("%s\n", clientCalculatedServerFinalMessage)
 					return false, nil, ErrAuthn
 				}
 				// Success!
@@ -188,30 +193,4 @@ func scram(authzid, username, password, name string, clientNonce []byte, fn func
 			return false, nil, ErrInvalidState
 		},
 	}
-}
-
-// ScramSha1Plus returns a Mechanism that implements the SCRAM-SHA-1-PLUS
-// authentication mechanism defined in RFC 5802. The only supported channel
-// binding type is tls-unique as defined in RFC 5929.
-func ScramSha1Plus(identity, username, password string) Mechanism {
-	return scram(identity, username, password, "SCRAM-SHA-1-PLUS", nonce(noncerandlen, cryptoReader{}), sha1.New)
-}
-
-// ScramSha256Plus returns a Mechanism that implements the SCRAM-SHA-256-PLUS
-// authentication mechanism defined in RFC 7677. The only supported channel
-// binding type is tls-unique as defined in RFC 5929.
-func ScramSha256Plus(identity, username, password string) Mechanism {
-	return scram(identity, username, password, "SCRAM-SHA-256-PLUS", nonce(noncerandlen, cryptoReader{}), sha256.New)
-}
-
-// ScramSha1 returns a Mechanism that implements the SCRAM-SHA-1 authentication
-// mechanism defined in RFC 5802.
-func ScramSha1(identity, username, password string) Mechanism {
-	return scram(identity, username, password, "SCRAM-SHA-1", nonce(noncerandlen, cryptoReader{}), sha1.New)
-}
-
-// ScramSha256 returns a Mechanism that implements the SCRAM-SHA-256
-// authentication mechanism defined in RFC 7677.
-func ScramSha256(identity, username, password string) Mechanism {
-	return scram(identity, username, password, "SCRAM-SHA-256", nonce(noncerandlen, cryptoReader{}), sha256.New)
 }
