@@ -8,9 +8,6 @@ import (
 	"crypto/tls"
 )
 
-// An Option represents an input to a SASL state machine.
-type Option func(*Config)
-
 // Config is a SASL client or server configuration.
 type Config struct {
 	// The state of any TLS connections being used to negotiate SASL (for channel
