@@ -29,7 +29,7 @@ const (
 
 const (
 	// Bit is on if the remote client or server supports channel binding.
-	RemoteCB = 1 << (iota + 3)
+	RemoteCB State = 1 << (iota + 3)
 
 	// Bit is on if the machine has errored.
 	Errored
