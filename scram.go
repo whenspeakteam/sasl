@@ -44,14 +44,14 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 			c := m.Config()
 
 			// TODO(ssw): This could probably be done faster and in one pass.
-			username = bytes.Replace(c.Username, []byte{'='}, []byte("=3D"), -1)
+			username = bytes.Replace([]byte(c.Username), []byte{'='}, []byte("=3D"), -1)
 			username = bytes.Replace(username, []byte{','}, []byte("=2C"), -1)
 
 			if len(c.Identity) != 0 {
 				authzid = append([]byte("a="), c.Identity...)
 			}
 
-			password = c.Password
+			password = []byte(c.Password)
 
 			clientFirstMessage = append([]byte("n="), username...)
 			clientFirstMessage = append(clientFirstMessage, []byte(",r=")...)
@@ -152,7 +152,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 
 				// TODO(ssw): Have a shared LRU cache for HMAC and hi calculations
 
-				saltedPassword := pbkdf2.Key([]byte(password), salt, iter, fn().Size(), fn)
+				saltedPassword := pbkdf2.Key(password, salt, iter, fn().Size(), fn)
 
 				h := hmac.New(fn, saltedPassword)
 				h.Write(serverKeyInput)

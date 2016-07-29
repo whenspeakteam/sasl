@@ -88,7 +88,7 @@ func BenchmarkScram(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		c := NewClient(
 			scram("SCRAM-SHA-1", sha1.New),
-			Credentials("user", "pencil"),
+			Config{Username: "user", Password: "pencil"},
 		)
 		for _, step := range clientTestCases.cases[0].steps {
 			more, _, _ := c.Step(step.challenge)

@@ -14,12 +14,7 @@ var plain = Mechanism{
 	Name: "PLAIN",
 	Start: func(m Negotiator) (bool, []byte, error) {
 		c := m.Config()
-		payload := c.Identity
-		payload = append(payload, '\x00')
-		payload = append(payload, c.Username...)
-		payload = append(payload, '\x00')
-		payload = append(payload, c.Password...)
-		return false, payload, nil
+		return false, []byte(c.Identity + "\x00" + c.Username + "\x00" + c.Password), nil
 	},
 	Next: func(m Negotiator, challenge []byte) (bool, []byte, error) {
 		// If we're a client or a server that's past the AuthTextSent step, we

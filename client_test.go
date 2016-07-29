@@ -15,7 +15,7 @@ var plainResp = []byte("Ursel\x00Kurt\x00xipj3plmq")
 var clientTestCases = testCases{
 	name: "Client",
 	cases: []saslTest{{
-		machine: NewClient(plain, Credentials("Kurt", "xipj3plmq"), Authz("Ursel")),
+		machine: NewClient(plain, Config{Identity: "Ursel", Username: "Kurt", Password: "xipj3plmq"}),
 		steps: []saslStep{
 			saslStep{challenge: []byte{}, resp: plainResp, err: false, more: false},
 			saslStep{challenge: nil, resp: nil, err: true, more: false},
@@ -23,7 +23,7 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("SCRAM-SHA-1", sha1.New),
-			Credentials("user", "pencil"),
+			Config{Username: "user", Password: "pencil"},
 		),
 		steps: []saslStep{
 			saslStep{
@@ -46,9 +46,11 @@ var clientTestCases = testCases{
 		// Mechanism is not SCRAM-SHA-1-PLUS, but has connstate and remote mechanisms.
 		machine: NewClient(
 			scram("SCRAM-SHA-1", sha1.New),
-			Credentials("user", "pencil"),
-			RemoteMechanisms("SCRAM-SHA-1-PLUS", "SCRAM-SHA-1"),
-			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
+			Config{
+				Username: "user", Password: "pencil",
+				RemoteMechanisms: []string{"SCRAM-SHA-1-PLUS", "SCRAM-SHA-1"},
+				TLSState:         &tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}},
+			},
 		),
 		steps: []saslStep{
 			saslStep{
@@ -70,9 +72,11 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("SCRAM-SHA-1-PLUS", sha1.New),
-			Credentials("user", "pencil"),
-			RemoteMechanisms("SCRAM-SHA-1-PLUS"),
-			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
+			Config{
+				Username: "user", Password: "pencil",
+				RemoteMechanisms: []string{"SCRAM-SHA-1-PLUS"},
+				TLSState:         &tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}},
+			},
 		),
 		steps: []saslStep{
 			saslStep{
@@ -94,7 +98,7 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("SCRAM-SHA-256", sha256.New),
-			Credentials("user", "pencil"),
+			Config{Username: "user", Password: "pencil"},
 		),
 		steps: []saslStep{
 			saslStep{
@@ -116,10 +120,11 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("SCRAM-SHA-256-PLUS", sha256.New),
-			Credentials("user", "pencil"),
-			Authz("admin"),
-			RemoteMechanisms("SCRAM-SOMETHING", "SCRAM-SHA-256-PLUS"),
-			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
+			Config{
+				Identity: "admin", Username: "user", Password: "pencil",
+				RemoteMechanisms: []string{"SCRAM-SOMETHING", "SCRAM-SHA-256-PLUS"},
+				TLSState:         &tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}},
+			},
 		),
 		steps: []saslStep{
 			saslStep{
@@ -141,9 +146,11 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("SCRAM-SHA-1-PLUS", sha1.New),
-			Credentials(",=,=", "password"),
-			RemoteMechanisms("SCRAM-SHA-1-PLUS"),
-			ConnState(tls.ConnectionState{TLSUnique: []byte("finishedmessage")}),
+			Config{
+				Username: ",=,=", Password: "password",
+				RemoteMechanisms: []string{"SCRAM-SHA-1-PLUS"},
+				TLSState:         &tls.ConnectionState{TLSUnique: []byte("finishedmessage")},
+			},
 		),
 		steps: []saslStep{
 			saslStep{

@@ -61,9 +61,9 @@ type client struct {
 }
 
 // NewClient creates a new SASL client that supports the given mechanism.
-func NewClient(m Mechanism, opts ...Option) Negotiator {
+func NewClient(m Mechanism, c Config) Negotiator {
 	machine := &client{
-		config:    getOpts(opts...),
+		config:    c,
 		mechanism: m,
 		nonce:     nonce(noncerandlen, cryptoReader{}),
 	}
