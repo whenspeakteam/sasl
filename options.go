@@ -23,5 +23,47 @@ type Config struct {
 	// An authorization identity, username, and password for the user that we're
 	// negotiating auth for. Identity will normally be left empty to act as the
 	// username.
-	Identity, Username, Password string
+	Identity, Username, Password []byte
+}
+
+func getOpts(o ...Option) (cfg Config) {
+	for _, f := range o {
+		f(&cfg)
+	}
+	return
+}
+
+// The ConnState option lets the state machine negotiate channel binding with a
+// TLS session if supported by the underlying mechanism.
+func ConnState(cs tls.ConnectionState) Option {
+	return func(o *Config) {
+		o.TLSState = &cs
+	}
+}
+
+// The RemoteMechanisms option configures the mechanisms supported by the remote
+// client or server with which the state machine will be negotiating. It is used
+// to determine if the server supports channel binding and is required for
+// proper support.
+func RemoteMechanisms(m ...string) Option {
+	return func(o *Config) {
+		o.RemoteMechanisms = m
+	}
+}
+
+// Credentials provides the negotiator with a username and password to
+// authenticate with.
+func Credentials(username, password string) Option {
+	return func(o *Config) {
+		o.Username = []byte(username)
+		o.Password = []byte(password)
+	}
+}
+
+// Authz is the identity a user that we will act as. Generally it is left off to
+// act as the user that is logging in.
+func Authz(identity string) Option {
+	return func(o *Config) {
+		o.Identity = []byte(identity)
+	}
 }
