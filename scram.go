@@ -84,9 +84,11 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 			}
 			w += copy(username[w:], c.Username[start:])
 
-			clientFirstMessage = append([]byte("n="), username...)
-			clientFirstMessage = append(clientFirstMessage, []byte(",r=")...)
-			clientFirstMessage = append(clientFirstMessage, m.Nonce()...)
+			clientFirstMessage = make([]byte, 5+len(m.Nonce())+len(username))
+			copy(clientFirstMessage, "n=")
+			copy(clientFirstMessage[2:], username)
+			copy(clientFirstMessage[2+len(username):], ",r=")
+			copy(clientFirstMessage[5+len(username):], m.Nonce())
 
 			return true, append(getGS2Header(name, m), clientFirstMessage...), nil
 		},
