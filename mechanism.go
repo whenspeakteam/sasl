@@ -46,7 +46,11 @@ var (
 // to perform the actual negotiation. Base64 encoding the final challenges and
 // responses should not be performed by the mechanism.
 //
-// Mechanisms must be stateless and may be shared between goroutines.
+// Mechanisms must be stateless and may be shared between goroutines. When a
+// mechanism needs to store state between the different steps it can return
+// anything that it needs to store and the value will be cached by the
+// negotiator and passed in as the data parameter when the next challenge is
+// received.
 type Mechanism struct {
 	Name  string
 	Start func(n Negotiator) (more bool, resp []byte, cache interface{}, err error)
