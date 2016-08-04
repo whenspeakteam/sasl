@@ -15,9 +15,9 @@ import (
 // used.
 type State uint8
 
+// The current step of the Server or Client (represented by the first two bits
+// of the state byte).
 const (
-	// The current step of the Server or Client (represented by the first two bits
-	// of the state byte).
 	Initial State = iota
 	AuthTextSent
 	ResponseSent
@@ -28,13 +28,13 @@ const (
 )
 
 const (
-	// Bit is on if the remote client or server supports channel binding.
+	// RemoteCB bit is on if the remote client or server supports channel binding.
 	RemoteCB State = 1 << (iota + 3)
 
-	// Bit is on if the machine has errored.
+	// Errored bit is on if the machine has errored.
 	Errored
 
-	// Bit is on if the machine is a server.
+	// Receiving bit is on if the machine is a server.
 	Receiving
 )
 
