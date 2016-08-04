@@ -58,6 +58,7 @@ type client struct {
 	mechanism Mechanism
 	state     State
 	nonce     []byte
+	cache     map[string]interface{}
 }
 
 // NewClient creates a new SASL client that supports the given mechanism.
@@ -66,6 +67,7 @@ func NewClient(m Mechanism, opts ...Option) Negotiator {
 		config:    getOpts(opts...),
 		mechanism: m,
 		nonce:     nonce(noncerandlen, cryptoReader{}),
+		cache:     make(map[string]interface{}),
 	}
 	for _, rname := range machine.config.RemoteMechanisms {
 		lname := m.Name
@@ -103,16 +105,16 @@ func (c *client) Step(challenge []byte) (more bool, resp []byte, err error) {
 
 	switch c.state & StepMask {
 	case Initial:
-		more, resp, err = c.mechanism.Start(c)
+		more, resp, c.cache[c.mechanism.Name], err = c.mechanism.Start(c)
 		c.state = c.state&^StepMask | AuthTextSent
 	case AuthTextSent:
-		more, resp, err = c.mechanism.Next(c, decodedChallenge)
+		more, resp, c.cache[c.mechanism.Name], err = c.mechanism.Next(c, decodedChallenge, c.cache[c.mechanism.Name])
 		c.state = c.state&^StepMask | ResponseSent
 	case ResponseSent:
-		more, resp, err = c.mechanism.Next(c, decodedChallenge)
+		more, resp, c.cache[c.mechanism.Name], err = c.mechanism.Next(c, decodedChallenge, c.cache[c.mechanism.Name])
 		c.state = c.state&^StepMask | ValidServerResponse
 	case ValidServerResponse:
-		more, resp, err = c.mechanism.Next(c, decodedChallenge)
+		more, resp, c.cache[c.mechanism.Name], err = c.mechanism.Next(c, decodedChallenge, c.cache[c.mechanism.Name])
 	}
 
 	if err != nil {
@@ -141,6 +143,7 @@ func (c *client) Reset() {
 	}
 
 	c.nonce = nonce(noncerandlen, cryptoReader{})
+	c.cache = make(map[string]interface{})
 }
 
 // Config returns the clients configuration.

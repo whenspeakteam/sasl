@@ -14,7 +14,7 @@ import (
 // https://developers.google.com/gmail/xoauth2_protocol
 var xoauth2 = sasl.Mechanism{
 	Name: "XOAUTH2",
-	Start: func(m sasl.Negotiator) (bool, []byte, error) {
+	Start: func(m sasl.Negotiator) (bool, []byte, interface{}, error) {
 		// Start is called only by clients and returns the client first message.
 
 		c := m.Config()
@@ -28,9 +28,9 @@ var xoauth2 = sasl.Mechanism{
 
 		// We do not need to Base64 encode the payload; the sasl.Negotiator will do
 		// that for us.
-		return false, payload, nil
+		return false, payload, nil, nil
 	},
-	Next: func(m sasl.Negotiator, challenge []byte) (bool, []byte, error) {
+	Next: func(m sasl.Negotiator, challenge []byte, _ interface{}) (bool, []byte, interface{}, error) {
 		// Next is called by both clients and servers and must be able to generate
 		// and handle every challenge except for the client first message which is
 		// generated (but not handled by) by Start.
@@ -39,12 +39,12 @@ var xoauth2 = sasl.Mechanism{
 		// should never actually hit this step for the XOAUTH2 mechanism so return
 		// an error.
 		if m.State()&sasl.Receiving != sasl.Receiving || m.State()&sasl.StepMask != sasl.AuthTextSent {
-			return false, nil, sasl.ErrTooManySteps
+			return false, nil, nil, sasl.ErrTooManySteps
 		}
 
 		// The server will take the auth from here. We don't really do much with
 		// this mechanism since there is only one step.
-		return false, challenge, nil
+		return false, challenge, nil, nil
 	},
 }
 

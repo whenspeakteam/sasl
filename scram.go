@@ -52,15 +52,11 @@ func getGS2Header(name string, n Negotiator) (gs2Header []byte) {
 }
 
 func scram(name string, fn func() hash.Hash) Mechanism {
-	// BUG(ssw): SCRAM mechanisms currently maintain state and break the
-	//           concurrency contract.
 	// BUG(ssw): We need a way to cache the SCRAM client and server key
 	//           calculations.
-	var clientFirstMessage, serverSignature []byte
-
 	return Mechanism{
 		Name: name,
-		Start: func(m Negotiator) (bool, []byte, error) {
+		Start: func(m Negotiator) (bool, []byte, interface{}, error) {
 			c := m.Config()
 
 			// Escape "=" and ",". This is mostly the same as bytes.Replace but
@@ -83,19 +79,20 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 			}
 			w += copy(username[w:], c.Username[start:])
 
-			clientFirstMessage = make([]byte, 5+len(m.Nonce())+len(username))
+			clientFirstMessage := make([]byte, 5+len(m.Nonce())+len(username))
 			copy(clientFirstMessage, "n=")
 			copy(clientFirstMessage[2:], username)
 			copy(clientFirstMessage[2+len(username):], ",r=")
 			copy(clientFirstMessage[5+len(username):], m.Nonce())
 
-			return true, append(getGS2Header(name, m), clientFirstMessage...), nil
+			return true, append(getGS2Header(name, m), clientFirstMessage...), clientFirstMessage, nil
 		},
-		Next: func(m Negotiator, challenge []byte) (bool, []byte, error) {
+		Next: func(m Negotiator, challenge []byte, data interface{}) (more bool, resp []byte, cache interface{}, err error) {
 			c := m.Config()
 			state := m.State()
 			if challenge == nil || len(challenge) == 0 {
-				return false, nil, ErrInvalidChallenge
+				err = ErrInvalidChallenge
+				return
 			}
 
 			// BUG(ssw): The server side of SCRAM is not yet implemented.
@@ -105,7 +102,6 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 
 			switch state & StepMask {
 			case AuthTextSent:
-				var err error
 				iter := -1
 				var salt, nonce []byte
 				for _, field := range bytes.Split(challenge, []byte{','}) {
@@ -117,14 +113,15 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 						ival := string(bytes.TrimRight(field[2:], "\x00"))
 
 						if iter, err = strconv.Atoi(ival); err != nil {
-							return false, nil, err
+							return
 						}
 					case 's':
 						salt = make([]byte, base64.StdEncoding.DecodedLen(len(field)-2))
-						n, err := base64.StdEncoding.Decode(salt, field[2:])
+						var n int
+						n, err = base64.StdEncoding.Decode(salt, field[2:])
 						salt = salt[:n]
 						if err != nil {
-							return false, nil, err
+							return
 						}
 					case 'r':
 						nonce = field[2:]
@@ -134,19 +131,24 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 						// version of SCRAM, its presence in a client or a server message
 						// MUST cause authentication failure when the attribute is parsed by
 						// the other end.
-						return false, nil, errors.New("Server sent reserved attribute `m`")
+						err = errors.New("Server sent reserved attribute `m`")
+						return
 					}
 				}
 
 				switch {
 				case iter < 0:
-					return false, nil, errors.New("Iteration count is missing")
+					err = errors.New("Iteration count is missing")
+					return
 				case iter < 0:
-					return false, nil, errors.New("Iteration count is invalid")
+					err = errors.New("Iteration count is invalid")
+					return
 				case nonce == nil || !bytes.HasPrefix(nonce, m.Nonce()):
-					return false, nil, errors.New("Server nonce does not match client nonce")
+					err = errors.New("Server nonce does not match client nonce")
+					return
 				case salt == nil:
-					return false, nil, errors.New("Server sent empty salt")
+					err = errors.New("Server sent empty salt")
+					return
 				}
 
 				gs2Header := getGS2Header(name, m)
@@ -171,6 +173,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 				clientFinalMessageWithoutProof := append(channelBinding, []byte(",r=")...)
 				clientFinalMessageWithoutProof = append(clientFinalMessageWithoutProof, nonce...)
 
+				clientFirstMessage := data.([]byte)
 				authMessage := append(clientFirstMessage, ',')
 				authMessage = append(authMessage, challenge...)
 				authMessage = append(authMessage, ',')
@@ -190,7 +193,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 
 				h = hmac.New(fn, serverKey)
 				h.Write(authMessage)
-				serverSignature = h.Sum(nil)
+				serverSignature := h.Sum(nil)
 
 				h = fn()
 				h.Write(clientKey)
@@ -206,16 +209,18 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 				clientFinalMessage := append(clientFinalMessageWithoutProof, []byte(",p=")...)
 				clientFinalMessage = append(clientFinalMessage, encodedClientProof...)
 
-				return true, clientFinalMessage, nil
+				return true, clientFinalMessage, serverSignature, nil
 			case ResponseSent:
-				clientCalculatedServerFinalMessage := "v=" + base64.StdEncoding.EncodeToString(serverSignature)
+				clientCalculatedServerFinalMessage := "v=" + base64.StdEncoding.EncodeToString(data.([]byte))
 				if clientCalculatedServerFinalMessage != string(challenge) {
-					return false, nil, ErrAuthn
+					err = ErrAuthn
+					return
 				}
 				// Success!
-				return false, nil, nil
+				return false, nil, nil, nil
 			}
-			return false, nil, ErrInvalidState
+			err = ErrInvalidState
+			return
 		},
 	}
 }
