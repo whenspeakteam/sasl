@@ -14,8 +14,7 @@ var plain = Mechanism{
 	Name: "PLAIN",
 	Start: func(m Negotiator) (bool, []byte, error) {
 		c := m.Config()
-		payload := c.Identity
-		payload = append(payload, '\x00')
+		payload := append(c.Identity, '\x00')
 		payload = append(payload, c.Username...)
 		payload = append(payload, '\x00')
 		payload = append(payload, c.Password...)
