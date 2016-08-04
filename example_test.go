@@ -15,6 +15,8 @@ import (
 var xoauth2 = sasl.Mechanism{
 	Name: "XOAUTH2",
 	Start: func(m sasl.Negotiator) (bool, []byte, error) {
+		// Start is called only by clients and returns the client first message.
+
 		c := m.Config()
 
 		payload := []byte(`user=`)
@@ -29,6 +31,10 @@ var xoauth2 = sasl.Mechanism{
 		return false, payload, nil
 	},
 	Next: func(m sasl.Negotiator, challenge []byte) (bool, []byte, error) {
+		// Next is called by both clients and servers and must be able to generate
+		// and handle every challenge except for the client first message which is
+		// generated (but not handled by) by Start.
+
 		// If we're a client or a server that's past the AuthTextSent step, we
 		// should never actually hit this step for the XOAUTH2 mechanism so return
 		// an error.
