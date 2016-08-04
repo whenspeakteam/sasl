@@ -9,7 +9,6 @@ import (
 	"crypto/hmac"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"hash"
 	"strconv"
 	"strings"
@@ -211,7 +210,6 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 			case ResponseSent:
 				clientCalculatedServerFinalMessage := "v=" + base64.StdEncoding.EncodeToString(serverSignature)
 				if clientCalculatedServerFinalMessage != string(challenge) {
-					fmt.Printf("%s\n", clientCalculatedServerFinalMessage)
 					return false, nil, ErrAuthn
 				}
 				// Success!
