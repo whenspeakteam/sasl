@@ -63,11 +63,26 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 		Name: name,
 		Start: func(m Negotiator) (bool, []byte, error) {
 			c := m.Config()
-			var username []byte
 
-			// TODO(ssw): This could probably be done faster and in one pass.
-			username = bytes.Replace(c.Username, []byte{'='}, []byte("=3D"), -1)
-			username = bytes.Replace(username, []byte{','}, []byte("=2C"), -1)
+			// Escape "=" and ",". This is mostly the same as bytes.Replace but
+			// faster because we can do both replacements in a single pass.
+			n := bytes.Count(c.Username, []byte{'='}) + bytes.Count(c.Username, []byte{','})
+			username := make([]byte, len(c.Username)+(n*2))
+			w := 0
+			start := 0
+			for i := 0; i < n; i++ {
+				j := start
+				j += bytes.IndexAny(c.Username[start:], "=,")
+				w += copy(username[w:], c.Username[start:j])
+				switch c.Username[j] {
+				case '=':
+					w += copy(username[w:], "=3D")
+				case ',':
+					w += copy(username[w:], "=2C")
+				}
+				start = j + 1
+			}
+			w += copy(username[w:], c.Username[start:])
 
 			clientFirstMessage = append([]byte("n="), username...)
 			clientFirstMessage = append(clientFirstMessage, []byte(",r=")...)
