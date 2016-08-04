@@ -53,7 +53,7 @@ func getGS2Header(name string, n Negotiator) (gs2Header []byte) {
 }
 
 func scram(name string, fn func() hash.Hash) Mechanism {
-	// BUG(ssw): Scram mechanisms currently maintain state and break the
+	// BUG(ssw): SCRAM mechanisms currently maintain state and break the
 	//           concurrency contract.
 	// BUG(ssw): We need a way to cache the SCRAM client and server key
 	//           calculations.
@@ -96,6 +96,8 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 			if challenge == nil || len(challenge) == 0 {
 				return false, nil, ErrInvalidChallenge
 			}
+
+			// BUG(ssw): The server side of SCRAM is not yet implemented.
 			if state&Receiving == Receiving {
 				panic("sasl: Server side of SCRAM not yet implemented")
 			}
