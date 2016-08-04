@@ -98,3 +98,18 @@ func BenchmarkScram(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkPlain(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		c := NewClient(
+			plain,
+			Credentials("user", "pencil"),
+		)
+		for _, step := range clientTestCases.cases[0].steps {
+			more, _, _ := c.Step(step.challenge)
+			if !more {
+				break
+			}
+		}
+	}
+}
