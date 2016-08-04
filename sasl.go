@@ -41,13 +41,6 @@ var (
 	ScramSha1 Mechanism = scram("SCRAM-SHA-1", sha1.New)
 )
 
-// TODO(ssw): Consider the posibility of having Start return an interface{}
-//            which will be remembered by the client or server and then passed
-//            back in on calls to Next. This way Mechanisms can actually have
-//            some state between calls, but they never have to store it so
-//            they're still safe for concurrent use (the Client or Server
-//            actually stores the state).
-
 // Mechanism represents a SASL mechanism that can be used by a Client or Server
 // to perform the actual negotiation. Base64 encoding the final challenges and
 // responses should not be performed by the mechanism.
