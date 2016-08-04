@@ -31,47 +31,52 @@ var (
 // The number of random bytes to generate for a nonce.
 const noncerandlen = 16
 
-func scram(name string, fn func() hash.Hash) Mechanism {
-	iter := -1
-	var salt, nonce, clientFirstMessage, serverSignature []byte
-	var gs2Header []byte
+func getGS2Header(name string, n Negotiator) (gs2Header []byte) {
+	c := n.Config()
+	switch {
+	case c.TLSState == nil || !strings.HasSuffix(name, "-PLUS"):
+		// We do not support channel binding
+		gs2Header = []byte(gs2HeaderNoCBSupport)
+	case n.State()&RemoteCB == RemoteCB:
+		// We support channel binding and the server does too
+		gs2Header = []byte(gs2HeaderCBSupport)
+	case n.State()&RemoteCB != RemoteCB:
+		// We support channel binding but the server does not
+		gs2Header = []byte(gs2HeaderNoServerCBSupport)
+	}
+	if len(c.Identity) > 0 {
+		gs2Header = append(gs2Header, []byte(`a=`)...)
+		gs2Header = append(gs2Header, c.Identity...)
+	}
+	gs2Header = append(gs2Header, ',')
+	return
+}
 
-	var authzid, username, password []byte
+func scram(name string, fn func() hash.Hash) Mechanism {
+	// BUG(ssw): Scram mechanisms currently maintain state and break the
+	//           concurrency contract.
+	// BUG(ssw): We need a way to cache the SCRAM client and server key
+	//           calculations.
+	var clientFirstMessage, serverSignature []byte
 
 	return Mechanism{
 		Name: name,
 		Start: func(m Negotiator) (bool, []byte, error) {
 			c := m.Config()
+			var username []byte
 
 			// TODO(ssw): This could probably be done faster and in one pass.
 			username = bytes.Replace(c.Username, []byte{'='}, []byte("=3D"), -1)
 			username = bytes.Replace(username, []byte{','}, []byte("=2C"), -1)
 
-			if len(c.Identity) != 0 {
-				authzid = append([]byte("a="), c.Identity...)
-			}
-
-			password = c.Password
-
 			clientFirstMessage = append([]byte("n="), username...)
 			clientFirstMessage = append(clientFirstMessage, []byte(",r=")...)
 			clientFirstMessage = append(clientFirstMessage, m.Nonce()...)
 
-			switch {
-			case m.Config().TLSState == nil || !strings.HasSuffix(name, "-PLUS"):
-				// We do not support channel binding
-				gs2Header = append([]byte(gs2HeaderNoCBSupport), authzid...)
-			case m.State()&RemoteCB == RemoteCB:
-				// We support channel binding and the server does too
-				gs2Header = append([]byte(gs2HeaderCBSupport), authzid...)
-			case m.State()&RemoteCB != RemoteCB:
-				// We support channel binding but the server does not
-				gs2Header = append([]byte(gs2HeaderNoServerCBSupport), authzid...)
-			}
-			gs2Header = append(gs2Header, ',')
-			return true, append(gs2Header, clientFirstMessage...), nil
+			return true, append(getGS2Header(name, m), clientFirstMessage...), nil
 		},
 		Next: func(m Negotiator, challenge []byte) (bool, []byte, error) {
+			c := m.Config()
 			state := m.State()
 			if challenge == nil || len(challenge) == 0 {
 				return false, nil, ErrInvalidChallenge
@@ -83,6 +88,8 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 			switch state & StepMask {
 			case AuthTextSent:
 				var err error
+				iter := -1
+				var salt, nonce []byte
 				for _, field := range bytes.Split(challenge, []byte{','}) {
 					if len(field) < 3 && field[1] != '=' {
 						continue
@@ -124,6 +131,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 					return false, nil, errors.New("Server sent empty salt")
 				}
 
+				gs2Header := getGS2Header(name, m)
 				var channelBinding []byte
 				if m.Config().TLSState != nil && strings.HasSuffix(name, "-PLUS") {
 					channelBinding = make(
@@ -152,7 +160,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 
 				// TODO(ssw): Have a shared LRU cache for HMAC and hi calculations
 
-				saltedPassword := pbkdf2.Key([]byte(password), salt, iter, fn().Size(), fn)
+				saltedPassword := pbkdf2.Key(c.Password, salt, iter, fn().Size(), fn)
 
 				h := hmac.New(fn, saltedPassword)
 				h.Write(serverKeyInput)
