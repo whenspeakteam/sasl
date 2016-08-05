@@ -14,13 +14,12 @@ var plain = Mechanism{
 	Name: "PLAIN",
 	Start: func(m Negotiator) (more bool, resp []byte, _ interface{}, err error) {
 		c := m.Config()
-		ilen, ulen, plen := len(c.Identity), len(c.Username), len(c.Password)
-		payload := make([]byte, ilen+ulen+plen+2)
-		copy(payload, c.Identity)
-		payload[ilen] = '\x00'
-		copy(payload[ilen+1:], c.Username)
-		payload[ilen+ulen+1] = '\x00'
-		copy(payload[ilen+ulen+2:], c.Password)
+		payload := make([]byte, 0, len(c.Identity)+len(c.Username)+len(c.Password)+2)
+		payload = append(payload, c.Identity...)
+		payload = append(payload, '\x00')
+		payload = append(payload, c.Username...)
+		payload = append(payload, '\x00')
+		payload = append(payload, c.Password...)
 		return false, payload, nil, nil
 	},
 	Next: func(m Negotiator, challenge []byte, _ interface{}) (more bool, resp []byte, _ interface{}, err error) {

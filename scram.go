@@ -105,7 +105,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 				iter := -1
 				var salt, nonce []byte
 				for _, field := range bytes.Split(challenge, []byte{','}) {
-					if len(field) < 3 && field[1] != '=' {
+					if len(field) < 3 || (len(field) >= 2 && field[1] != '=') {
 						continue
 					}
 					switch field[0] {
@@ -158,17 +158,17 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 						[]byte,
 						2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(m.Config().TLSState.TLSUnique)),
 					)
+					base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, m.Config().TLSState.TLSUnique...))
 					channelBinding[0] = 'c'
 					channelBinding[1] = '='
-					base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, m.Config().TLSState.TLSUnique...))
 				} else {
 					channelBinding = make(
 						[]byte,
 						2+base64.StdEncoding.EncodedLen(len(gs2Header)),
 					)
+					base64.StdEncoding.Encode(channelBinding[2:], gs2Header)
 					channelBinding[0] = 'c'
 					channelBinding[1] = '='
-					base64.StdEncoding.Encode(channelBinding[2:], gs2Header)
 				}
 				clientFinalMessageWithoutProof := append(channelBinding, []byte(",r=")...)
 				clientFinalMessageWithoutProof = append(clientFinalMessageWithoutProof, nonce...)
