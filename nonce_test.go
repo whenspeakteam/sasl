@@ -5,6 +5,7 @@
 package sasl
 
 import (
+	"crypto/rand"
 	"errors"
 	"testing"
 )
@@ -26,7 +27,7 @@ func TestNoncePanicsIfTooShort(t *testing.T) {
 			}
 		}()
 
-		nonce(0, cryptoReader{})
+		nonce(0, rand.Reader)
 	}()
 	func() {
 		defer func() {
@@ -35,7 +36,7 @@ func TestNoncePanicsIfTooShort(t *testing.T) {
 			}
 		}()
 
-		nonce(-1, cryptoReader{})
+		nonce(-1, rand.Reader)
 	}()
 }
 
@@ -72,7 +73,7 @@ func TestNoncePanicsOnIncompleteReadingRand(t *testing.T) {
 }
 
 func BenchmarkNonce(b *testing.B) {
-	cr := cryptoReader{}
+	cr := rand.Reader
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		nonce(16, cr)

@@ -5,16 +5,9 @@
 package sasl
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"io"
 )
-
-type cryptoReader struct{}
-
-func (cryptoReader) Read(p []byte) (int, error) {
-	return rand.Read(p)
-}
 
 // Generates a nonce with n random bytes base64 encoded to ensure that it meets
 // the criteria for inclusion in a SCRAM message.

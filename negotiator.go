@@ -5,6 +5,7 @@
 package sasl
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"strings"
 )
@@ -66,7 +67,7 @@ func NewClient(m Mechanism, opts ...Option) Negotiator {
 	machine := &client{
 		config:    getOpts(opts...),
 		mechanism: m,
-		nonce:     nonce(noncerandlen, cryptoReader{}),
+		nonce:     nonce(noncerandlen, rand.Reader),
 	}
 	for _, rname := range machine.config.RemoteMechanisms {
 		lname := m.Name
@@ -141,7 +142,7 @@ func (c *client) Reset() {
 		c.state = c.state&^StepMask | AuthTextSent
 	}
 
-	c.nonce = nonce(noncerandlen, cryptoReader{})
+	c.nonce = nonce(noncerandlen, rand.Reader)
 	c.cache = nil
 }
 
