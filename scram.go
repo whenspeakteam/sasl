@@ -77,7 +77,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 				}
 				start = j + 1
 			}
-			w += copy(username[w:], c.Username[start:])
+			copy(username[w:], c.Username[start:])
 
 			clientFirstMessage := make([]byte, 5+len(m.Nonce())+len(username))
 			copy(clientFirstMessage, "n=")
