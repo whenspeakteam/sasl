@@ -33,18 +33,18 @@ func getOpts(o ...Option) (cfg Config) {
 	return
 }
 
-// The ConnState option lets the state machine negotiate channel binding with a
-// TLS session if supported by the underlying mechanism.
+// ConnState lets the state machine negotiate channel binding with a TLS session
+// if supported by the underlying mechanism.
 func ConnState(cs tls.ConnectionState) Option {
 	return func(o *Config) {
 		o.TLSState = &cs
 	}
 }
 
-// The RemoteMechanisms option configures the mechanisms supported by the remote
-// client or server with which the state machine will be negotiating. It is used
-// to determine if the server supports channel binding and is required for
-// proper support.
+// RemoteMechanisms configures the mechanisms supported by the remote client or
+// server with which the state machine will be negotiating.
+// It is used to determine if the server supports channel binding and is
+// required for proper support.
 func RemoteMechanisms(m ...string) Option {
 	return func(o *Config) {
 		o.RemoteMechanisms = m
