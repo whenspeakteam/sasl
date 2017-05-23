@@ -21,7 +21,7 @@ var (
 var (
 	// Plain is a Mechanism that implements the PLAIN authentication mechanism
 	// as defined by RFC 4616.
-	Plain = plain
+	Plain Mechanism = plain
 
 	// ScramSha256Plus is a Mechanism that implements the SCRAM-SHA-256-PLUS
 	// authentication mechanism defined in RFC 7677. The only supported channel
