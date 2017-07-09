@@ -48,7 +48,7 @@ var xoauth2 = sasl.Mechanism{
 	},
 }
 
-func Example_customMechanism() {
+func Example_xOAUTH2() {
 	c := sasl.NewClient(xoauth2, sasl.Credentials(
 		"someuser@example.com", "vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg=="),
 	)
