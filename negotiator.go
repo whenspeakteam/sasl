@@ -54,17 +54,9 @@ type Negotiator interface {
 	Reset()
 }
 
-type client struct {
-	config    Config
-	mechanism Mechanism
-	state     State
-	nonce     []byte
-	cache     interface{}
-}
-
 // NewClient creates a new SASL client that supports the given mechanism.
 func NewClient(m Mechanism, opts ...Option) Negotiator {
-	machine := &client{
+	machine := &negotiator{
 		config:    getOpts(opts...),
 		mechanism: m,
 		nonce:     nonce(noncerandlen, rand.Reader),
@@ -79,14 +71,22 @@ func NewClient(m Mechanism, opts ...Option) Negotiator {
 	return machine
 }
 
-func (c *client) Nonce() []byte {
+type negotiator struct {
+	config    Config
+	mechanism Mechanism
+	state     State
+	nonce     []byte
+	cache     interface{}
+}
+
+func (c *negotiator) Nonce() []byte {
 	return c.nonce
 }
 
 // Step attempts to transition the state machine to its next state. If Step is
 // called after a previous invocation generates an error (and the state machine
 // has not been reset to its initial state), Step panics.
-func (c *client) Step(challenge []byte) (more bool, resp []byte, err error) {
+func (c *negotiator) Step(challenge []byte) (more bool, resp []byte, err error) {
 	if c.state&Errored == Errored {
 		panic("sasl: Step called on a SASL state machine that has errored")
 	}
@@ -128,13 +128,13 @@ func (c *client) Step(challenge []byte) (more bool, resp []byte, err error) {
 }
 
 // State returns the internal state of the SASL state machine.
-func (c *client) State() State {
+func (c *negotiator) State() State {
 	return c.state
 }
 
 // Reset resets the state machine to its initial state so that it can be reused
 // in another SASL exchange.
-func (c *client) Reset() {
+func (c *negotiator) Reset() {
 	c.state = c.state & (Receiving | RemoteCB)
 
 	// Skip the start step for servers
@@ -147,6 +147,6 @@ func (c *client) Reset() {
 }
 
 // Config returns the clients configuration.
-func (c *client) Config() Config {
+func (c *negotiator) Config() Config {
 	return c.config
 }

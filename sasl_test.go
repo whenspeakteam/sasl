@@ -49,7 +49,7 @@ func TestSASL(t *testing.T) {
 		// to the initial state.
 		for run := 1; run < 3; run++ {
 			// Reset the nonce to the one used by all of our test vectors.
-			if c, ok := test.machine.(*client); ok {
+			if c, ok := test.machine.(*negotiator); ok {
 				c.nonce = []byte("fyko+d2lbbFgONRv9qkxdawL")
 			}
 			for _, step := range test.steps {

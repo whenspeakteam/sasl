@@ -6,7 +6,7 @@ package sasl
 
 func newServer(m Mechanism) Negotiator {
 	s := NewClient(m)
-	c := s.(*client)
+	c := s.(*negotiator)
 	c.state = AuthTextSent
 	c.state |= Receiving
 	return c
