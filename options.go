@@ -60,8 +60,8 @@ func Credentials(username, password string) Option {
 	}
 }
 
-// Authz is the identity a user that we will act as. Generally it is left off to
-// act as the user that is logging in.
+// Authz is the identity of a user that we will act as. Generally it is left off
+// to act as the user that is logging in.
 func Authz(identity string) Option {
 	return func(o *Config) {
 		o.Identity = []byte(identity)
