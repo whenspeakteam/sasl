@@ -54,7 +54,8 @@ type Negotiator interface {
 	Reset()
 }
 
-// NewClient creates a new SASL client that supports the given mechanism.
+// NewClient creates a new SASL Negotiator that supports creating authentication
+// requests using the given mechanism.
 func NewClient(m Mechanism, opts ...Option) Negotiator {
 	machine := &negotiator{
 		config:    getOpts(opts...),
@@ -92,7 +93,7 @@ func (c *negotiator) Step(challenge []byte) (more bool, resp []byte, err error) 
 	}
 	defer func() {
 		if err != nil {
-			c.state = c.state | Errored
+			c.state |= Errored
 		}
 	}()
 

@@ -23,8 +23,8 @@ var plain = Mechanism{
 		return false, payload, nil, nil
 	},
 	Next: func(m Negotiator, challenge []byte, _ interface{}) (more bool, resp []byte, _ interface{}, err error) {
-		// If we're a client or a server that's past the AuthTextSent step, we
-		// should never actually hit this step.
+		// If we're a client, or we're a server that's past the AuthTextSent step,
+		// we should never actually hit this step.
 		if m.State()&Receiving != Receiving || m.State()&StepMask != AuthTextSent {
 			err = ErrTooManySteps
 			return

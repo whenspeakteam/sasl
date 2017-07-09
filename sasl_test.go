@@ -45,7 +45,7 @@ func getStepName(n Negotiator) string {
 
 func TestSASL(t *testing.T) {
 	doTests(t, []testCases{clientTestCases, serverTestCases}, func(t *testing.T, test saslTest) {
-		// Run each test twice to make srue that Reset actually sets the state back
+		// Run each test twice to make sure that Reset actually sets the state back
 		// to the initial state.
 		for run := 1; run < 3; run++ {
 			// Reset the nonce to the one used by all of our test vectors.
