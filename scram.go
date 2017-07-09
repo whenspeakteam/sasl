@@ -30,7 +30,7 @@ var (
 // The number of random bytes to generate for a nonce.
 const noncerandlen = 16
 
-func getGS2Header(name string, n Negotiator) (gs2Header []byte) {
+func getGS2Header(name string, n *Negotiator) (gs2Header []byte) {
 	c := n.Config()
 	switch {
 	case c.TLSState == nil || !strings.HasSuffix(name, "-PLUS"):
@@ -56,7 +56,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 	//           calculations.
 	return Mechanism{
 		Name: name,
-		Start: func(m Negotiator) (bool, []byte, interface{}, error) {
+		Start: func(m *Negotiator) (bool, []byte, interface{}, error) {
 			c := m.Config()
 
 			// Escape "=" and ",". This is mostly the same as bytes.Replace but
@@ -87,7 +87,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 
 			return true, append(getGS2Header(name, m), clientFirstMessage...), clientFirstMessage, nil
 		},
-		Next: func(m Negotiator, challenge []byte, data interface{}) (more bool, resp []byte, cache interface{}, err error) {
+		Next: func(m *Negotiator, challenge []byte, data interface{}) (more bool, resp []byte, cache interface{}, err error) {
 			c := m.Config()
 			state := m.State()
 			if challenge == nil || len(challenge) == 0 {

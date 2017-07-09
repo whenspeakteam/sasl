@@ -19,7 +19,7 @@ type saslStep struct {
 }
 
 type saslTest struct {
-	machine Negotiator
+	machine *Negotiator
 	steps   []saslStep
 }
 
@@ -28,7 +28,7 @@ type testCases struct {
 	cases []saslTest
 }
 
-func getStepName(n Negotiator) string {
+func getStepName(n *Negotiator) string {
 	switch n.State() & StepMask {
 	case Initial:
 		return "Initial"
@@ -49,9 +49,7 @@ func TestSASL(t *testing.T) {
 		// to the initial state.
 		for run := 1; run < 3; run++ {
 			// Reset the nonce to the one used by all of our test vectors.
-			if c, ok := test.machine.(*negotiator); ok {
-				c.nonce = []byte("fyko+d2lbbFgONRv9qkxdawL")
-			}
+			test.machine.nonce = []byte("fyko+d2lbbFgONRv9qkxdawL")
 			for _, step := range test.steps {
 				more, resp, err := test.machine.Step(
 					[]byte(base64.StdEncoding.EncodeToString(step.challenge)),

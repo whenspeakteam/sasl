@@ -4,12 +4,11 @@
 
 package sasl
 
-func newServer(m Mechanism) Negotiator {
+func newServer(m Mechanism) *Negotiator {
 	s := NewClient(m)
-	c := s.(*negotiator)
-	c.state = AuthTextSent
-	c.state |= Receiving
-	return c
+	s.state = AuthTextSent
+	s.state |= Receiving
+	return s
 }
 
 var serverTestCases = testCases{

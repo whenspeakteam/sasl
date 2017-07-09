@@ -53,6 +53,6 @@ var (
 // received.
 type Mechanism struct {
 	Name  string
-	Start func(n Negotiator) (more bool, resp []byte, cache interface{}, err error)
-	Next  func(n Negotiator, challenge []byte, data interface{}) (more bool, resp []byte, cache interface{}, err error)
+	Start func(n *Negotiator) (more bool, resp []byte, cache interface{}, err error)
+	Next  func(n *Negotiator, challenge []byte, data interface{}) (more bool, resp []byte, cache interface{}, err error)
 }

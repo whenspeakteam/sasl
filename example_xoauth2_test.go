@@ -14,7 +14,7 @@ import (
 // https://developers.google.com/gmail/xoauth2_protocol
 var xoauth2 = sasl.Mechanism{
 	Name: "XOAUTH2",
-	Start: func(m sasl.Negotiator) (bool, []byte, interface{}, error) {
+	Start: func(m *sasl.Negotiator) (bool, []byte, interface{}, error) {
 		// Start is called only by clients and returns the client first message.
 
 		c := m.Config()
@@ -30,7 +30,7 @@ var xoauth2 = sasl.Mechanism{
 		// that for us.
 		return false, payload, nil, nil
 	},
-	Next: func(m sasl.Negotiator, challenge []byte, _ interface{}) (bool, []byte, interface{}, error) {
+	Next: func(m *sasl.Negotiator, challenge []byte, _ interface{}) (bool, []byte, interface{}, error) {
 		// Next is called by both clients and servers and must be able to generate
 		// and handle every challenge except for the client first message which is
 		// generated (but not handled by) by Start.

@@ -12,7 +12,7 @@ var plainSep = []byte{0}
 
 var plain = Mechanism{
 	Name: "PLAIN",
-	Start: func(m Negotiator) (more bool, resp []byte, _ interface{}, err error) {
+	Start: func(m *Negotiator) (more bool, resp []byte, _ interface{}, err error) {
 		c := m.Config()
 		payload := make([]byte, 0, len(c.Identity)+len(c.Username)+len(c.Password)+2)
 		payload = append(payload, c.Identity...)
@@ -22,7 +22,7 @@ var plain = Mechanism{
 		payload = append(payload, c.Password...)
 		return false, payload, nil, nil
 	},
-	Next: func(m Negotiator, challenge []byte, _ interface{}) (more bool, resp []byte, _ interface{}, err error) {
+	Next: func(m *Negotiator, challenge []byte, _ interface{}) (more bool, resp []byte, _ interface{}, err error) {
 		// If we're a client, or we're a server that's past the AuthTextSent step,
 		// we should never actually hit this step.
 		if m.State()&Receiving != Receiving || m.State()&StepMask != AuthTextSent {
