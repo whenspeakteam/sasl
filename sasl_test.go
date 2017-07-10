@@ -9,7 +9,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"strings"
 	"testing"
 )
@@ -56,13 +55,7 @@ func TestSASL(t *testing.T) {
 			for _, step := range test.steps {
 				resp := new(bytes.Buffer)
 				challenge := strings.NewReader(base64.StdEncoding.EncodeToString(step.challenge))
-				more, err := test.machine.Step(struct {
-					io.Reader
-					io.Writer
-				}{
-					Reader: challenge,
-					Writer: resp,
-				})
+				more, err := test.machine.Step(challenge, resp)
 				switch {
 				case err != nil && test.machine.State()&Errored != Errored:
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
@@ -101,13 +94,7 @@ func BenchmarkScram(b *testing.B) {
 			Credentials("user", "pencil"),
 		)
 		for _, step := range clientTestCases.cases[0].steps {
-			more, _ := c.Step(struct {
-				io.Reader
-				io.Writer
-			}{
-				Reader: bytes.NewReader(step.challenge),
-				Writer: buf,
-			})
+			more, _ := c.Step(bytes.NewReader(step.challenge), buf)
 			if !more {
 				break
 			}
@@ -124,13 +111,7 @@ func BenchmarkPlain(b *testing.B) {
 			Credentials("user", "pencil"),
 		)
 		for _, step := range clientTestCases.cases[0].steps {
-			more, _ := c.Step(struct {
-				io.Reader
-				io.Writer
-			}{
-				Reader: bytes.NewReader(step.challenge),
-				Writer: buf,
-			})
+			more, _ := c.Step(bytes.NewReader(step.challenge), buf)
 			if !more {
 				break
 			}

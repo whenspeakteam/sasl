@@ -77,8 +77,10 @@ func (c *Negotiator) Nonce() []byte {
 
 // Step attempts to transition the state machine to its next state. If Step is
 // called after a previous invocation generates an error (and the state machine
-// has not been reset to its initial state), Step panics.
-func (c *Negotiator) Step(rw io.ReadWriter) (more bool, err error) {
+// has not been reset to its initial state), Step panics. The challenge will be
+// read from the provided reader and the response will be written to the
+// provided writer.
+func (c *Negotiator) Step(challenge io.Reader, resp io.Writer) (more bool, err error) {
 	if c.state&Errored == Errored {
 		panic("sasl: Step called on a SASL state machine that has errored")
 	}
@@ -88,13 +90,12 @@ func (c *Negotiator) Step(rw io.ReadWriter) (more bool, err error) {
 		}
 	}()
 
-	decodeChallenge := base64.NewDecoder(base64.StdEncoding, rw)
-	encodeResp := base64.NewEncoder(base64.StdEncoding, rw)
-	rw = struct {
+	encodeResp := base64.NewEncoder(base64.StdEncoding, resp)
+	rw := struct {
 		io.Reader
 		io.Writer
 	}{
-		Reader: decodeChallenge,
+		Reader: base64.NewDecoder(base64.StdEncoding, challenge),
 		Writer: encodeResp,
 	}
 

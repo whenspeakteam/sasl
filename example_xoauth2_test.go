@@ -74,13 +74,7 @@ func Example_xOAUTH2() {
 
 	// This is the first step and we haven't received any challenge from the
 	// server yet.
-	c.Step(struct {
-		io.Reader
-		io.Writer
-	}{
-		Reader: nil,
-		Writer: os.Stdout,
-	})
+	c.Step(nil, os.Stdout)
 
 	// Output: dXNlcj1zb21ldXNlckBleGFtcGxlLmNvbQFhdXRoPUJlYXJlciB2RjlkZnQ0cW1UYzJOdmIzUmxja0JoZEhSaGRtbHpkR0V1WTI5dENnPT0BAQ==
 }
