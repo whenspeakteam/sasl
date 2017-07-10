@@ -8,6 +8,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"errors"
+	"io"
 )
 
 // Define common errors used by SASL mechanisms and negotiators.
@@ -53,6 +54,6 @@ var (
 // received.
 type Mechanism struct {
 	Name  string
-	Start func(n *Negotiator) (more bool, resp []byte, cache interface{}, err error)
-	Next  func(n *Negotiator, challenge []byte, data interface{}) (more bool, resp []byte, cache interface{}, err error)
+	Start func(n *Negotiator, resp io.Writer) (more bool, cache interface{}, err error)
+	Next  func(n *Negotiator, rw io.ReadWriter, data interface{}) (more bool, cache interface{}, err error)
 }

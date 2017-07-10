@@ -5,9 +5,12 @@
 package sasl
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"strings"
 	"testing"
 )
 
@@ -51,9 +54,15 @@ func TestSASL(t *testing.T) {
 			// Reset the nonce to the one used by all of our test vectors.
 			test.machine.nonce = []byte("fyko+d2lbbFgONRv9qkxdawL")
 			for _, step := range test.steps {
-				more, resp, err := test.machine.Step(
-					[]byte(base64.StdEncoding.EncodeToString(step.challenge)),
-				)
+				resp := new(bytes.Buffer)
+				challenge := strings.NewReader(base64.StdEncoding.EncodeToString(step.challenge))
+				more, err := test.machine.Step(struct {
+					io.Reader
+					io.Writer
+				}{
+					Reader: challenge,
+					Writer: resp,
+				})
 				switch {
 				case err != nil && test.machine.State()&Errored != Errored:
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
@@ -69,9 +78,9 @@ func TestSASL(t *testing.T) {
 					// There was an error, but we didn't expect one
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
 					t.Fatalf("Got unexpected SASL error: %v", err)
-				case base64.StdEncoding.EncodeToString(step.resp) != string(resp):
+				case base64.StdEncoding.EncodeToString(step.resp) != resp.String():
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
-					decoded, _ := base64.StdEncoding.DecodeString(string(resp))
+					decoded, _ := base64.StdEncoding.DecodeString(resp.String())
 					t.Fatalf("Got invalid challenge text:\nexpected %s\n     got %s", step.resp, decoded)
 				case more != step.more:
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
@@ -84,13 +93,21 @@ func TestSASL(t *testing.T) {
 }
 
 func BenchmarkScram(b *testing.B) {
+	buf := bytes.NewBuffer(make([]byte, 0, 4096))
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		c := NewClient(
 			scram("SCRAM-SHA-1", sha1.New),
 			Credentials("user", "pencil"),
 		)
 		for _, step := range clientTestCases.cases[0].steps {
-			more, _, _ := c.Step(step.challenge)
+			more, _ := c.Step(struct {
+				io.Reader
+				io.Writer
+			}{
+				Reader: bytes.NewReader(step.challenge),
+				Writer: buf,
+			})
 			if !more {
 				break
 			}
@@ -99,13 +116,21 @@ func BenchmarkScram(b *testing.B) {
 }
 
 func BenchmarkPlain(b *testing.B) {
+	buf := bytes.NewBuffer(make([]byte, 0, 4096))
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		c := NewClient(
 			plain,
 			Credentials("user", "pencil"),
 		)
 		for _, step := range clientTestCases.cases[0].steps {
-			more, _, _ := c.Step(step.challenge)
+			more, _ := c.Step(struct {
+				io.Reader
+				io.Writer
+			}{
+				Reader: bytes.NewReader(step.challenge),
+				Writer: buf,
+			})
 			if !more {
 				break
 			}

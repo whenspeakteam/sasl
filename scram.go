@@ -10,6 +10,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"hash"
+	"io"
+	"io/ioutil"
 	"strconv"
 	"strings"
 
@@ -56,7 +58,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 	//           calculations.
 	return Mechanism{
 		Name: name,
-		Start: func(m *Negotiator) (bool, []byte, interface{}, error) {
+		Start: func(m *Negotiator, resp io.Writer) (bool, interface{}, error) {
 			c := m.Config()
 
 			// Escape "=" and ",". This is mostly the same as bytes.Replace but
@@ -85,11 +87,27 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 			copy(clientFirstMessage[2+len(username):], ",r=")
 			copy(clientFirstMessage[5+len(username):], m.Nonce())
 
-			return true, append(getGS2Header(name, m), clientFirstMessage...), clientFirstMessage, nil
+			gs2Header := getGS2Header(name, m)
+			_, err := resp.Write(gs2Header)
+			if err != nil {
+				return false, nil, err
+			}
+			_, err = resp.Write(clientFirstMessage)
+			if err != nil {
+				return false, nil, err
+			}
+
+			return true, clientFirstMessage, nil
 		},
-		Next: func(m *Negotiator, challenge []byte, data interface{}) (more bool, resp []byte, cache interface{}, err error) {
+		Next: func(m *Negotiator, rw io.ReadWriter, data interface{}) (more bool, cache interface{}, err error) {
 			c := m.Config()
 			state := m.State()
+
+			challenge, err := ioutil.ReadAll(rw)
+			if err != nil {
+				return false, nil, err
+			}
+
 			if challenge == nil || len(challenge) == 0 {
 				err = ErrInvalidChallenge
 				return
@@ -206,10 +224,21 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 
 				encodedClientProof := make([]byte, base64.StdEncoding.EncodedLen(len(clientProof)))
 				base64.StdEncoding.Encode(encodedClientProof, clientProof)
-				clientFinalMessage := append(clientFinalMessageWithoutProof, []byte(",p=")...)
-				clientFinalMessage = append(clientFinalMessage, encodedClientProof...)
 
-				return true, clientFinalMessage, serverSignature, nil
+				_, err = rw.Write(clientFinalMessageWithoutProof)
+				if err != nil {
+					return false, nil, err
+				}
+				_, err = rw.Write([]byte(",p="))
+				if err != nil {
+					return false, nil, err
+				}
+				_, err = rw.Write(encodedClientProof)
+				if err != nil {
+					return false, nil, err
+				}
+
+				return true, serverSignature, nil
 			case ResponseSent:
 				clientCalculatedServerFinalMessage := "v=" + base64.StdEncoding.EncodeToString(data.([]byte))
 				if clientCalculatedServerFinalMessage != string(challenge) {
@@ -217,7 +246,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 					return
 				}
 				// Success!
-				return false, nil, nil, nil
+				return false, nil, nil
 			}
 			err = ErrInvalidState
 			return
