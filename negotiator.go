@@ -80,7 +80,7 @@ func (c *Negotiator) Nonce() []byte {
 // has not been reset to its initial state), Step panics. The challenge will be
 // read from the provided reader and the response will be written to the
 // provided writer.
-func (c *Negotiator) Step(challenge io.Reader, resp io.Writer) (more bool, err error) {
+func (c *Negotiator) Step(challenge io.Reader, resp io.Writer) (more bool, nDst, nSrc int, err error) {
 	if c.state&Errored == Errored {
 		panic("sasl: Step called on a SASL state machine that has errored")
 	}
@@ -90,12 +90,15 @@ func (c *Negotiator) Step(challenge io.Reader, resp io.Writer) (more bool, err e
 		}
 	}()
 
-	encodeResp := base64.NewEncoder(base64.StdEncoding, resp)
+	cw := &countingWriter{w: resp}
+	encodeResp := base64.NewEncoder(base64.StdEncoding, cw)
+
+	cr := &countingReader{r: base64.NewDecoder(base64.StdEncoding, challenge)}
 	rw := struct {
 		io.Reader
 		io.Writer
 	}{
-		Reader: base64.NewDecoder(base64.StdEncoding, challenge),
+		Reader: cr,
 		Writer: encodeResp,
 	}
 
@@ -112,12 +115,11 @@ func (c *Negotiator) Step(challenge io.Reader, resp io.Writer) (more bool, err e
 	case ValidServerResponse:
 		more, c.cache, err = c.mechanism.Next(c, rw, c.cache)
 	}
-
 	if err != nil {
-		return more, err
+		return more, cw.n, cr.n, err
 	}
 
-	return more, encodeResp.Close()
+	return more, cw.n, cr.n, encodeResp.Close()
 }
 
 // State returns the internal state of the SASL state machine.
@@ -142,4 +144,26 @@ func (c *Negotiator) Reset() {
 // Config returns the Negotiators configuration.
 func (c *Negotiator) Config() Config {
 	return c.config
+}
+
+type countingWriter struct {
+	w io.Writer
+	n int
+}
+
+func (cw *countingWriter) Write(p []byte) (int, error) {
+	n, err := cw.w.Write(p)
+	cw.n += n
+	return n, err
+}
+
+type countingReader struct {
+	r io.Reader
+	n int
+}
+
+func (cr *countingReader) Read(p []byte) (int, error) {
+	n, err := cr.r.Read(p)
+	cr.n += n
+	return n, err
 }

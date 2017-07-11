@@ -54,8 +54,9 @@ func TestSASL(t *testing.T) {
 			test.machine.nonce = []byte("fyko+d2lbbFgONRv9qkxdawL")
 			for _, step := range test.steps {
 				resp := new(bytes.Buffer)
-				challenge := strings.NewReader(base64.StdEncoding.EncodeToString(step.challenge))
-				more, err := test.machine.Step(challenge, resp)
+				challengeString := base64.StdEncoding.EncodeToString(step.challenge)
+				challenge := strings.NewReader(challengeString)
+				more, nDst, _, err := test.machine.Step(challenge, resp)
 				switch {
 				case err != nil && test.machine.State()&Errored != Errored:
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
@@ -71,6 +72,12 @@ func TestSASL(t *testing.T) {
 					// There was an error, but we didn't expect one
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
 					t.Fatalf("Got unexpected SASL error: %v", err)
+				case nDst != resp.Len():
+					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
+					t.Errorf("Different number of bytes written than reported actual=%d, nDst=%d", resp.Len(), nDst)
+				//case nSrc != len(challengeString):
+				//	t.Logf("Run %d, Step %s", run, getStepName(test.machine))
+				// t.Errorf("Bytes read is not challenge length read=%d, nSrc=%d", len(challengeString), nSrc)
 				case base64.StdEncoding.EncodeToString(step.resp) != resp.String():
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
 					decoded, _ := base64.StdEncoding.DecodeString(resp.String())
@@ -94,7 +101,7 @@ func BenchmarkScram(b *testing.B) {
 			Credentials("user", "pencil"),
 		)
 		for _, step := range clientTestCases.cases[0].steps {
-			more, _ := c.Step(bytes.NewReader(step.challenge), buf)
+			more, _, _, _ := c.Step(bytes.NewReader(step.challenge), buf)
 			if !more {
 				break
 			}
@@ -111,7 +118,7 @@ func BenchmarkPlain(b *testing.B) {
 			Credentials("user", "pencil"),
 		)
 		for _, step := range clientTestCases.cases[0].steps {
-			more, _ := c.Step(bytes.NewReader(step.challenge), buf)
+			more, _, _, _ := c.Step(bytes.NewReader(step.challenge), buf)
 			if !more {
 				break
 			}
