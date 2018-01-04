@@ -72,7 +72,7 @@ func TestSASL(t *testing.T) {
 				case base64.StdEncoding.EncodeToString(step.resp) != string(resp):
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
 					decoded, _ := base64.StdEncoding.DecodeString(string(resp))
-					t.Fatalf("Got invalid challenge text:\nexpected %s\n     got %s", step.resp, decoded)
+					t.Fatalf("Got invalid response text:\nexpected `%s'\n     got `%s'", step.resp, decoded)
 				case more != step.more:
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
 					t.Fatalf("Got unexpected value for more: %v", more)

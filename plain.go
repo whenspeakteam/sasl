@@ -39,6 +39,12 @@ var plain = Mechanism{
 			return
 		}
 
+		c := m.Config()
+		if !c.Permissions(c) {
+			err = ErrAuthn
+			return
+		}
+
 		// Everything checks out as far as we know and the server should continue
 		// to authenticate the user.
 		resp = challenge

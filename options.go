@@ -23,11 +23,19 @@ type Config struct {
 	// Returns a username, and password for authentication and optional identity
 	// for authorization.
 	Credentials func() (Username, Password, Identity []byte)
+
+	// A function used by the server to check if the given config contains valid
+	// credentials.
+	// If it returns true, the user is authenticated.
+	Permissions func(cfg Config) bool
 }
 
 func getOpts(o ...Option) (cfg Config) {
 	cfg.Credentials = func() (username, password, identity []byte) {
 		return
+	}
+	cfg.Permissions = func(_ Config) bool {
+		return false
 	}
 	for _, f := range o {
 		f(&cfg)

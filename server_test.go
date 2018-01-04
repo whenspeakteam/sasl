@@ -4,37 +4,39 @@
 
 package sasl
 
-func newServer(m Mechanism) *Negotiator {
-	s := NewClient(m)
-	s.state = AuthTextSent
-	s.state |= Receiving
-	return s
+func acceptAll(_ Config) bool {
+	return true
 }
 
 var serverTestCases = testCases{
 	name: "Server",
 	cases: []saslTest{{
-		machine: newServer(plain),
+		machine: NewServer(plain, acceptAll),
 		steps: []saslStep{
 			{challenge: []byte("Ursel\x00Kurt\x00xipj3plmq\x00"), resp: nil, err: true, more: false},
 		},
 	}, {
-		machine: newServer(plain),
+		machine: NewServer(plain, acceptAll),
 		steps: []saslStep{
 			{challenge: []byte("\x00Ursel\x00Kurt\x00xipj3plmq"), resp: nil, err: true, more: false},
 		},
 	}, {
-		machine: newServer(plain),
+		machine: NewServer(plain, acceptAll),
 		steps: []saslStep{
 			{challenge: plainResp, resp: plainResp, err: false, more: false},
 		},
 	}, {
-		machine: newServer(scram("", nil)),
+		machine: NewServer(plain, nil),
+		steps: []saslStep{
+			{challenge: plainResp, resp: nil, err: true, more: false},
+		},
+	}, {
+		machine: NewServer(scram("", nil), acceptAll),
 		steps: []saslStep{
 			{challenge: nil, resp: nil, err: true, more: false},
 		},
 	}, {
-		machine: newServer(scram("", nil)),
+		machine: NewServer(scram("", nil), acceptAll),
 		steps: []saslStep{
 			{challenge: []byte{}, resp: nil, err: true, more: false},
 		},

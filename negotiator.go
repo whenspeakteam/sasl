@@ -57,6 +57,30 @@ func NewClient(m Mechanism, opts ...Option) *Negotiator {
 	return machine
 }
 
+// NewServer creates a new SASL Negotiator that supports receiving
+// authentication requests using the given mechanism.
+// A nil permissions function is the same as a function that always returns
+// false.
+func NewServer(m Mechanism, permissions func(cfg Config) bool, opts ...Option) *Negotiator {
+	machine := &Negotiator{
+		config:    getOpts(opts...),
+		mechanism: m,
+		nonce:     nonce(noncerandlen, rand.Reader),
+		state:     AuthTextSent | Receiving,
+	}
+	if permissions != nil {
+		machine.config.Permissions = permissions
+	}
+	for _, rname := range machine.config.RemoteMechanisms {
+		lname := m.Name
+		if lname == rname && strings.HasSuffix(lname, "-PLUS") {
+			machine.state |= RemoteCB
+			return machine
+		}
+	}
+	return machine
+}
+
 // A Negotiator represents a SASL client or server state machine that can
 // attempt to negotiate auth. Negotiators should not be used from multiple
 // goroutines, and must be reset between negotiation attempts.
