@@ -54,7 +54,7 @@ func getGS2Header(name string, n *Negotiator) (gs2Header []byte) {
 
 func scram(name string, fn func() hash.Hash) Mechanism {
 	// BUG(ssw): We need a way to cache the SCRAM client and server key
-	//           calculations.
+	// calculations.
 	return Mechanism{
 		Name: name,
 		Start: func(m *Negotiator) (bool, []byte, interface{}, error) {
@@ -182,7 +182,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 				authMessage = append(authMessage, ',')
 				authMessage = append(authMessage, clientFinalMessageWithoutProof...)
 
-				// TODO(ssw): Have a shared LRU cache for HMAC and hi calculations
+				// TODO(ssw): Have a cache for HMAC and hi calculations
 
 				saltedPassword := pbkdf2.Key(password, salt, iter, fn().Size(), fn)
 
