@@ -15,7 +15,10 @@ var plainResp = []byte("Ursel\x00Kurt\x00xipj3plmq")
 var clientTestCases = testCases{
 	name: "Client",
 	cases: []saslTest{{
-		machine: NewClient(plain, Credentials("Kurt", "xipj3plmq"), Authz("Ursel")),
+		machine: NewClient(plain,
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte("Kurt"), []byte("xipj3plmq"), []byte("Ursel")
+			})),
 		steps: []saslStep{
 			{challenge: []byte{}, resp: plainResp, err: false, more: false},
 			{challenge: nil, resp: nil, err: true, more: false},
@@ -23,7 +26,9 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("SCRAM-SHA-1", sha1.New),
-			Credentials("user", "pencil"),
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte("user"), []byte("pencil"), []byte{}
+			}),
 		),
 		steps: []saslStep{
 			{
@@ -46,7 +51,9 @@ var clientTestCases = testCases{
 		// Mechanism is not SCRAM-SHA-1-PLUS, but has connstate and remote mechanisms.
 		machine: NewClient(
 			scram("SCRAM-SHA-1", sha1.New),
-			Credentials("user", "pencil"),
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte("user"), []byte("pencil"), []byte{}
+			}),
 			RemoteMechanisms("SCRAM-SHA-1-PLUS", "SCRAM-SHA-1"),
 			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
 		),
@@ -70,7 +77,9 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("SCRAM-SHA-1-PLUS", sha1.New),
-			Credentials("user", "pencil"),
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte("user"), []byte("pencil"), []byte{}
+			}),
 			RemoteMechanisms("SCRAM-SHA-1-PLUS"),
 			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
 		),
@@ -94,7 +103,9 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("SCRAM-SHA-256", sha256.New),
-			Credentials("user", "pencil"),
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte("user"), []byte("pencil"), []byte{}
+			}),
 		),
 		steps: []saslStep{
 			{
@@ -116,8 +127,9 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("SCRAM-SHA-256-PLUS", sha256.New),
-			Credentials("user", "pencil"),
-			Authz("admin"),
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte("user"), []byte("pencil"), []byte("admin")
+			}),
 			RemoteMechanisms("SCRAM-SOMETHING", "SCRAM-SHA-256-PLUS"),
 			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
 		),
@@ -141,7 +153,9 @@ var clientTestCases = testCases{
 	}, {
 		machine: NewClient(
 			scram("SCRAM-SHA-1-PLUS", sha1.New),
-			Credentials(",=,=", "password"),
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte(",=,="), []byte("password"), []byte{}
+			}),
 			RemoteMechanisms("SCRAM-SHA-1-PLUS"),
 			ConnState(tls.ConnectionState{TLSUnique: []byte("finishedmessage")}),
 		),

@@ -20,13 +20,15 @@ type Config struct {
 	// A list of mechanisms as advertised by the other side of a SASL negotiation.
 	RemoteMechanisms []string
 
-	// An authorization identity, username, and password for the user that we're
-	// negotiating auth for. Identity will normally be left empty to act as the
-	// username.
-	Identity, Username, Password []byte
+	// Returns a username, and password for authentication and optional identity
+	// for authorization.
+	Credentials func() (Username, Password, Identity []byte)
 }
 
 func getOpts(o ...Option) (cfg Config) {
+	cfg.Credentials = func() (username, password, identity []byte) {
+		return
+	}
 	for _, f := range o {
 		f(&cfg)
 	}
@@ -52,18 +54,13 @@ func RemoteMechanisms(m ...string) Option {
 }
 
 // Credentials provides the negotiator with a username and password to
-// authenticate with.
-func Credentials(username, password string) Option {
+// authenticate with and (optionally) an authorization identity.
+// Identity will normally be left empty to act as the username.
+// The Credentials function is called lazily and may be called multiple times by
+// the mechanism.
+// It is not memoized by the negotiator.
+func Credentials(f func() (Username, Password, Identity []byte)) Option {
 	return func(o *Config) {
-		o.Username = []byte(username)
-		o.Password = []byte(password)
-	}
-}
-
-// Authz is the identity of a user that we will act as. Generally it is left off
-// to act as the user that is logging in.
-func Authz(identity string) Option {
-	return func(o *Config) {
-		o.Identity = []byte(identity)
+		o.Credentials = f
 	}
 }

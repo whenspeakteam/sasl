@@ -32,6 +32,7 @@ const noncerandlen = 16
 
 func getGS2Header(name string, n *Negotiator) (gs2Header []byte) {
 	c := n.Config()
+	_, _, identity := c.Credentials()
 	switch {
 	case c.TLSState == nil || !strings.HasSuffix(name, "-PLUS"):
 		// We do not support channel binding
@@ -43,9 +44,9 @@ func getGS2Header(name string, n *Negotiator) (gs2Header []byte) {
 		// We support channel binding but the server does not
 		gs2Header = []byte(gs2HeaderNoServerCBSupport)
 	}
-	if len(c.Identity) > 0 {
+	if len(identity) > 0 {
 		gs2Header = append(gs2Header, []byte(`a=`)...)
-		gs2Header = append(gs2Header, c.Identity...)
+		gs2Header = append(gs2Header, identity...)
 	}
 	gs2Header = append(gs2Header, ',')
 	return
@@ -58,18 +59,19 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 		Name: name,
 		Start: func(m *Negotiator) (bool, []byte, interface{}, error) {
 			c := m.Config()
+			user, _, _ := c.Credentials()
 
 			// Escape "=" and ",". This is mostly the same as bytes.Replace but
 			// faster because we can do both replacements in a single pass.
-			n := bytes.Count(c.Username, []byte{'='}) + bytes.Count(c.Username, []byte{','})
-			username := make([]byte, len(c.Username)+(n*2))
+			n := bytes.Count(user, []byte{'='}) + bytes.Count(user, []byte{','})
+			username := make([]byte, len(user)+(n*2))
 			w := 0
 			start := 0
 			for i := 0; i < n; i++ {
 				j := start
-				j += bytes.IndexAny(c.Username[start:], "=,")
-				w += copy(username[w:], c.Username[start:j])
-				switch c.Username[j] {
+				j += bytes.IndexAny(user[start:], "=,")
+				w += copy(username[w:], user[start:j])
+				switch user[j] {
 				case '=':
 					w += copy(username[w:], "=3D")
 				case ',':
@@ -77,7 +79,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 				}
 				start = j + 1
 			}
-			copy(username[w:], c.Username[start:])
+			copy(username[w:], user[start:])
 
 			clientFirstMessage := make([]byte, 5+len(m.Nonce())+len(username))
 			copy(clientFirstMessage, "n=")
@@ -89,6 +91,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 		},
 		Next: func(m *Negotiator, challenge []byte, data interface{}) (more bool, resp []byte, cache interface{}, err error) {
 			c := m.Config()
+			_, password, _ := c.Credentials()
 			state := m.State()
 			if challenge == nil || len(challenge) == 0 {
 				err = ErrInvalidChallenge
@@ -181,7 +184,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 
 				// TODO(ssw): Have a shared LRU cache for HMAC and hi calculations
 
-				saltedPassword := pbkdf2.Key(c.Password, salt, iter, fn().Size(), fn)
+				saltedPassword := pbkdf2.Key(password, salt, iter, fn().Size(), fn)
 
 				h := hmac.New(fn, saltedPassword)
 				h.Write(serverKeyInput)

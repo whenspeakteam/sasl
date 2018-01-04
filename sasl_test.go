@@ -87,7 +87,9 @@ func BenchmarkScram(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		c := NewClient(
 			scram("SCRAM-SHA-1", sha1.New),
-			Credentials("user", "pencil"),
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte("user"), []byte("pencil"), []byte{}
+			}),
 		)
 		for _, step := range clientTestCases.cases[0].steps {
 			more, _, _ := c.Step(step.challenge)
@@ -102,7 +104,9 @@ func BenchmarkPlain(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		c := NewClient(
 			plain,
-			Credentials("user", "pencil"),
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte("user"), []byte("pencil"), []byte{}
+			}),
 		)
 		for _, step := range clientTestCases.cases[0].steps {
 			more, _, _ := c.Step(step.challenge)

@@ -18,12 +18,13 @@ var xoauth2 = sasl.Mechanism{
 		// Start is called only by clients and returns the client first message.
 
 		c := m.Config()
+		username, password, _ := c.Credentials()
 
 		payload := []byte(`user=`)
-		payload = append(payload, c.Username...)
+		payload = append(payload, username...)
 		payload = append(payload, '\x01')
 		payload = append(payload, []byte(`auth=Bearer `)...)
-		payload = append(payload, c.Password...)
+		payload = append(payload, password...)
 		payload = append(payload, '\x01', '\x01')
 
 		// We do not need to Base64 encode the payload; the sasl.Negotiator will do
@@ -49,8 +50,11 @@ var xoauth2 = sasl.Mechanism{
 }
 
 func Example_xOAUTH2() {
-	c := sasl.NewClient(xoauth2, sasl.Credentials(
-		"someuser@example.com", "vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg=="),
+	c := sasl.NewClient(
+		xoauth2,
+		sasl.Credentials(func() ([]byte, []byte, []byte) {
+			return []byte("someuser@example.com"), []byte("vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg=="), []byte{}
+		}),
 	)
 
 	// This is the first step and we haven't received any challenge from the
