@@ -13,8 +13,7 @@ var plainSep = []byte{0}
 var plain = Mechanism{
 	Name: "PLAIN",
 	Start: func(m *Negotiator) (more bool, resp []byte, _ interface{}, err error) {
-		c := m.Config()
-		username, password, identity := c.Credentials()
+		username, password, identity := m.credentials()
 		payload := make([]byte, 0, len(identity)+len(username)+len(password)+2)
 		payload = append(payload, identity...)
 		payload = append(payload, '\x00')
@@ -39,8 +38,7 @@ var plain = Mechanism{
 			return
 		}
 
-		c := m.Config()
-		if !c.Permissions(c) {
+		if !m.Permissions(m) {
 			err = ErrAuthn
 			return
 		}

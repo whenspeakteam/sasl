@@ -6,6 +6,7 @@ package sasl
 
 import (
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/base64"
 	"strings"
 )
@@ -43,11 +44,11 @@ const (
 // requests using the given mechanism.
 func NewClient(m Mechanism, opts ...Option) *Negotiator {
 	machine := &Negotiator{
-		config:    getOpts(opts...),
 		mechanism: m,
 		nonce:     nonce(noncerandlen, rand.Reader),
 	}
-	for _, rname := range machine.config.RemoteMechanisms {
+	getOpts(machine, opts...)
+	for _, rname := range machine.remoteMechanisms {
 		lname := m.Name
 		if lname == rname && strings.HasSuffix(lname, "-PLUS") {
 			machine.state |= RemoteCB
@@ -61,17 +62,17 @@ func NewClient(m Mechanism, opts ...Option) *Negotiator {
 // authentication requests using the given mechanism.
 // A nil permissions function is the same as a function that always returns
 // false.
-func NewServer(m Mechanism, permissions func(cfg Config) bool, opts ...Option) *Negotiator {
+func NewServer(m Mechanism, permissions func(*Negotiator) bool, opts ...Option) *Negotiator {
 	machine := &Negotiator{
-		config:    getOpts(opts...),
 		mechanism: m,
 		nonce:     nonce(noncerandlen, rand.Reader),
 		state:     AuthTextSent | Receiving,
 	}
+	getOpts(machine, opts...)
 	if permissions != nil {
-		machine.config.Permissions = permissions
+		machine.permissions = permissions
 	}
-	for _, rname := range machine.config.RemoteMechanisms {
+	for _, rname := range machine.remoteMechanisms {
 		lname := m.Name
 		if lname == rname && strings.HasSuffix(lname, "-PLUS") {
 			machine.state |= RemoteCB
@@ -85,11 +86,14 @@ func NewServer(m Mechanism, permissions func(cfg Config) bool, opts ...Option) *
 // attempt to negotiate auth. Negotiators should not be used from multiple
 // goroutines, and must be reset between negotiation attempts.
 type Negotiator struct {
-	config    Config
-	mechanism Mechanism
-	state     State
-	nonce     []byte
-	cache     interface{}
+	tlsState         *tls.ConnectionState
+	remoteMechanisms []string
+	credentials      func() (Username, Password, Identity []byte)
+	permissions      func(*Negotiator) bool
+	mechanism        Mechanism
+	state            State
+	nonce            []byte
+	cache            interface{}
 }
 
 // Nonce returns a unique nonce that is reset for each negotiation attempt. It
@@ -161,7 +165,36 @@ func (c *Negotiator) Reset() {
 	c.cache = nil
 }
 
-// Config returns the Negotiators configuration.
-func (c *Negotiator) Config() Config {
-	return c.config
+// Returns a username, and password for authentication and optional identity for
+// authorization.
+func (c *Negotiator) Credentials() (username, password, identity []byte) {
+	if c.credentials != nil {
+		return c.credentials()
+	}
+	return
+}
+
+// A function used by the server to authenticate the user.
+func (c *Negotiator) Permissions(n *Negotiator) bool {
+	if c.permissions != nil {
+		return c.permissions(c)
+	}
+	return false
+}
+
+// The state of any TLS connections being used to negotiate SASL (for channel
+// binding).
+func (c *Negotiator) TLSState() *tls.ConnectionState {
+	if c.tlsState != nil {
+		return c.tlsState
+	}
+	return nil
+}
+
+// A list of mechanisms as advertised by the other side of a SASL negotiation.
+func (c *Negotiator) RemoteMechanisms() []string {
+	if c.remoteMechanisms != nil {
+		return c.remoteMechanisms
+	}
+	return nil
 }

@@ -9,55 +9,34 @@ import (
 )
 
 // An Option represents an input to a SASL state machine.
-type Option func(*Config)
+type Option func(*Negotiator)
 
-// Config is a SASL client or server configuration.
-type Config struct {
-	// The state of any TLS connections being used to negotiate SASL (for channel
-	// binding).
-	TLSState *tls.ConnectionState
-
-	// A list of mechanisms as advertised by the other side of a SASL negotiation.
-	RemoteMechanisms []string
-
-	// Returns a username, and password for authentication and optional identity
-	// for authorization.
-	Credentials func() (Username, Password, Identity []byte)
-
-	// A function used by the server to check if the given config contains valid
-	// credentials.
-	// If it returns true, the user is authenticated.
-	Permissions func(cfg Config) bool
-}
-
-func getOpts(o ...Option) (cfg Config) {
-	cfg.Credentials = func() (username, password, identity []byte) {
+func getOpts(n *Negotiator, o ...Option) {
+	n.credentials = func() (username, password, identity []byte) {
 		return
 	}
-	cfg.Permissions = func(_ Config) bool {
+	n.permissions = func(_ *Negotiator) bool {
 		return false
 	}
 	for _, f := range o {
-		f(&cfg)
+		f(n)
 	}
-	return
 }
 
-// ConnState lets the state machine negotiate channel binding with a TLS session
+// TLSState lets the state machine negotiate channel binding with a TLS session
 // if supported by the underlying mechanism.
-func ConnState(cs tls.ConnectionState) Option {
-	return func(o *Config) {
-		o.TLSState = &cs
+func TLSState(cs tls.ConnectionState) Option {
+	return func(n *Negotiator) {
+		n.tlsState = &cs
 	}
 }
 
-// RemoteMechanisms configures the mechanisms supported by the remote client or
+// RemoteMechanisms sets a list of mechanisms supported by the remote client or
 // server with which the state machine will be negotiating.
-// It is used to determine if the server supports channel binding and is
-// required for proper support.
+// It is used to determine if the server supports channel binding.
 func RemoteMechanisms(m ...string) Option {
-	return func(o *Config) {
-		o.RemoteMechanisms = m
+	return func(n *Negotiator) {
+		n.remoteMechanisms = m
 	}
 }
 
@@ -68,7 +47,7 @@ func RemoteMechanisms(m ...string) Option {
 // the mechanism.
 // It is not memoized by the negotiator.
 func Credentials(f func() (Username, Password, Identity []byte)) Option {
-	return func(o *Config) {
-		o.Credentials = f
+	return func(n *Negotiator) {
+		n.credentials = f
 	}
 }

@@ -4,7 +4,7 @@
 
 package sasl
 
-func acceptAll(_ Config) bool {
+func acceptAll(_ *Negotiator) bool {
 	return true
 }
 

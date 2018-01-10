@@ -55,7 +55,7 @@ var clientTestCases = testCases{
 				return []byte("user"), []byte("pencil"), []byte{}
 			}),
 			RemoteMechanisms("SCRAM-SHA-1-PLUS", "SCRAM-SHA-1"),
-			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
+			TLSState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
 		),
 		steps: []saslStep{
 			{
@@ -81,7 +81,7 @@ var clientTestCases = testCases{
 				return []byte("user"), []byte("pencil"), []byte{}
 			}),
 			RemoteMechanisms("SCRAM-SHA-1-PLUS"),
-			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
+			TLSState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
 		),
 		steps: []saslStep{
 			{
@@ -131,7 +131,7 @@ var clientTestCases = testCases{
 				return []byte("user"), []byte("pencil"), []byte("admin")
 			}),
 			RemoteMechanisms("SCRAM-SOMETHING", "SCRAM-SHA-256-PLUS"),
-			ConnState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
+			TLSState(tls.ConnectionState{TLSUnique: []byte{0, 1, 2, 3, 4}}),
 		),
 		steps: []saslStep{
 			{
@@ -157,7 +157,7 @@ var clientTestCases = testCases{
 				return []byte(",=,="), []byte("password"), []byte{}
 			}),
 			RemoteMechanisms("SCRAM-SHA-1-PLUS"),
-			ConnState(tls.ConnectionState{TLSUnique: []byte("finishedmessage")}),
+			TLSState(tls.ConnectionState{TLSUnique: []byte("finishedmessage")}),
 		),
 		steps: []saslStep{
 			{

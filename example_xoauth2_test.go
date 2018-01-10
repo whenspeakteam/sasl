@@ -17,8 +17,7 @@ var xoauth2 = sasl.Mechanism{
 	Start: func(m *sasl.Negotiator) (bool, []byte, interface{}, error) {
 		// Start is called only by clients and returns the client first message.
 
-		c := m.Config()
-		username, password, _ := c.Credentials()
+		username, password, _ := m.Credentials()
 
 		payload := []byte(`user=`)
 		payload = append(payload, username...)
@@ -36,16 +35,19 @@ var xoauth2 = sasl.Mechanism{
 		// and handle every challenge except for the client first message which is
 		// generated (but not handled by) by Start.
 
+		state := m.State()
+
 		// If we're a client or a server that's past the AuthTextSent step, we
 		// should never actually hit this step for the XOAUTH2 mechanism so return
 		// an error.
-		if m.State()&sasl.Receiving != sasl.Receiving || m.State()&sasl.StepMask != sasl.AuthTextSent {
+		if state&sasl.Receiving != sasl.Receiving || state&sasl.StepMask != sasl.AuthTextSent {
 			return false, nil, nil, sasl.ErrTooManySteps
 		}
 
-		// The server will take the auth from here. We don't really do much with
-		// this mechanism since there is only one step.
-		return false, challenge, nil, nil
+		if m.Permissions(m) {
+			return false, nil, nil, nil
+		}
+		return false, nil, nil, sasl.ErrAuthn
 	},
 }
 

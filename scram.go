@@ -31,10 +31,9 @@ var (
 const noncerandlen = 16
 
 func getGS2Header(name string, n *Negotiator) (gs2Header []byte) {
-	c := n.Config()
-	_, _, identity := c.Credentials()
+	_, _, identity := n.Credentials()
 	switch {
-	case c.TLSState == nil || !strings.HasSuffix(name, "-PLUS"):
+	case n.TLSState() == nil || !strings.HasSuffix(name, "-PLUS"):
 		// We do not support channel binding
 		gs2Header = []byte(gs2HeaderNoCBSupport)
 	case n.State()&RemoteCB == RemoteCB:
@@ -58,8 +57,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 	return Mechanism{
 		Name: name,
 		Start: func(m *Negotiator) (bool, []byte, interface{}, error) {
-			c := m.Config()
-			user, _, _ := c.Credentials()
+			user, _, _ := m.Credentials()
 
 			// Escape "=" and ",". This is mostly the same as bytes.Replace but
 			// faster because we can do both replacements in a single pass.
@@ -90,8 +88,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 			return true, append(getGS2Header(name, m), clientFirstMessage...), clientFirstMessage, nil
 		},
 		Next: func(m *Negotiator, challenge []byte, data interface{}) (more bool, resp []byte, cache interface{}, err error) {
-			c := m.Config()
-			_, password, _ := c.Credentials()
+			_, password, _ := m.Credentials()
 			state := m.State()
 			if challenge == nil || len(challenge) == 0 {
 				err = ErrInvalidChallenge
@@ -155,13 +152,14 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 				}
 
 				gs2Header := getGS2Header(name, m)
+				tlsState := m.TLSState()
 				var channelBinding []byte
-				if m.Config().TLSState != nil && strings.HasSuffix(name, "-PLUS") {
+				if tlsState != nil && strings.HasSuffix(name, "-PLUS") {
 					channelBinding = make(
 						[]byte,
-						2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(m.Config().TLSState.TLSUnique)),
+						2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(tlsState.TLSUnique)),
 					)
-					base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, m.Config().TLSState.TLSUnique...))
+					base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, tlsState.TLSUnique...))
 					channelBinding[0] = 'c'
 					channelBinding[1] = '='
 				} else {
