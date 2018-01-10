@@ -38,14 +38,14 @@ var plain = Mechanism{
 			return
 		}
 
-		if !m.Permissions(m) {
-			err = ErrAuthn
+		if m.Permissions(m) {
+			// Everything checks out as far as we know and the server should continue
+			// to authenticate the user.
+			resp = challenge
 			return
 		}
 
-		// Everything checks out as far as we know and the server should continue
-		// to authenticate the user.
-		resp = challenge
+		err = ErrAuthn
 		return
 	},
 }
