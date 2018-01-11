@@ -131,7 +131,7 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 						// version of SCRAM, its presence in a client or a server message
 						// MUST cause authentication failure when the attribute is parsed by
 						// the other end.
-						err = errors.New("Server sent reserved attribute `m`")
+						err = errors.New("Server sent reserved attribute `m'")
 						return
 					}
 				}

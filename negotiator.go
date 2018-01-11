@@ -11,10 +11,10 @@ import (
 	"strings"
 )
 
-// State represents the current state of a Negotiator. The first two bits
-// represent the actual state of the state machine and the last 3 bits are a
-// bitmask that define the machines behavior. The remaining bits should not be
-// used.
+// State represents the current state of a Negotiator.
+// The first two bits represent the actual state of the state machine and the
+// last 3 bits are a bitmask that define the machines behavior.
+// The remaining bits should not be used.
 type State uint8
 
 // The current step of the Server or Client (represented by the first two bits
