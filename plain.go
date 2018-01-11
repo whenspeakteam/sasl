@@ -38,7 +38,9 @@ var plain = Mechanism{
 			return
 		}
 
-		if m.Permissions(m) {
+		if m.Permissions(Credentials(func() (Username, Password, Identity []byte) {
+			return parts[1], parts[2], parts[0]
+		})) {
 			// Everything checks out as far as we know and the server should continue
 			// to authenticate the user.
 			resp = challenge

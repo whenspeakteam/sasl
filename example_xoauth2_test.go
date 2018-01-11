@@ -5,6 +5,7 @@
 package sasl_test
 
 import (
+	"bytes"
 	"fmt"
 
 	"mellium.im/sasl"
@@ -44,7 +45,25 @@ var xoauth2 = sasl.Mechanism{
 			return false, nil, nil, sasl.ErrTooManySteps
 		}
 
-		if m.Permissions(m) {
+		parts := bytes.Split(challenge, []byte{1})
+		if len(parts) != 3 {
+			return false, nil, nil, sasl.ErrInvalidChallenge
+		}
+		user := bytes.TrimPrefix([]byte("user="), parts[0])
+		if len(user) == len(parts[0]) {
+			return false, nil, nil, sasl.ErrInvalidChallenge
+		}
+		pass := bytes.TrimPrefix([]byte("Auth=Bearer "), parts[1])
+		if len(pass) == len(parts[1]) {
+			return false, nil, nil, sasl.ErrInvalidChallenge
+		}
+		if len(parts[2]) > 0 {
+			return false, nil, nil, sasl.ErrInvalidChallenge
+		}
+
+		if m.Permissions(sasl.Credentials(func() ([]byte, []byte, []byte) {
+			return user, pass, nil
+		})) {
 			return false, nil, nil, nil
 		}
 		return false, nil, nil, sasl.ErrAuthn

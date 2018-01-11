@@ -175,9 +175,11 @@ func (c *Negotiator) Credentials() (username, password, identity []byte) {
 }
 
 // A function used by the server to authenticate the user.
-func (c *Negotiator) Permissions(n *Negotiator) bool {
+func (c *Negotiator) Permissions(opts ...Option) bool {
 	if c.permissions != nil {
-		return c.permissions(c)
+		nn := *c
+		getOpts(&nn, opts...)
+		return c.permissions(&nn)
 	}
 	return false
 }
