@@ -165,8 +165,8 @@ func (c *Negotiator) Reset() {
 	c.cache = nil
 }
 
-// Returns a username, and password for authentication and optional identity for
-// authorization.
+// Credentials returns a username, and password for authentication and optional
+// identity for authorization.
 func (c *Negotiator) Credentials() (username, password, identity []byte) {
 	if c.credentials != nil {
 		return c.credentials()
@@ -174,7 +174,7 @@ func (c *Negotiator) Credentials() (username, password, identity []byte) {
 	return
 }
 
-// A function used by the server to authenticate the user.
+// Permissions is the callback used by the server to authenticate the user.
 func (c *Negotiator) Permissions(opts ...Option) bool {
 	if c.permissions != nil {
 		nn := *c
@@ -184,8 +184,8 @@ func (c *Negotiator) Permissions(opts ...Option) bool {
 	return false
 }
 
-// The state of any TLS connections being used to negotiate SASL (for channel
-// binding).
+// TLSState is the state of any TLS connections being used to negotiate SASL
+// (it can be used for channel binding).
 func (c *Negotiator) TLSState() *tls.ConnectionState {
 	if c.tlsState != nil {
 		return c.tlsState
@@ -193,7 +193,8 @@ func (c *Negotiator) TLSState() *tls.ConnectionState {
 	return nil
 }
 
-// A list of mechanisms as advertised by the other side of a SASL negotiation.
+// RemoteMechanisms is a list of mechanisms as advertised by the other side of a
+// SASL negotiation.
 func (c *Negotiator) RemoteMechanisms() []string {
 	if c.remoteMechanisms != nil {
 		return c.remoteMechanisms
