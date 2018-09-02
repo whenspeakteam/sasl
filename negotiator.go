@@ -7,7 +7,6 @@ package sasl
 import (
 	"crypto/rand"
 	"crypto/tls"
-	"encoding/base64"
 	"strings"
 )
 
@@ -115,35 +114,25 @@ func (c *Negotiator) Step(challenge []byte) (more bool, resp []byte, err error) 
 		}
 	}()
 
-	decodedChallenge := make([]byte, base64.StdEncoding.DecodedLen(len(challenge)))
-	n, err := base64.StdEncoding.Decode(decodedChallenge, challenge)
-	if err != nil {
-		return false, nil, err
-	}
-	decodedChallenge = decodedChallenge[:n]
-
 	switch c.state & StepMask {
 	case Initial:
 		more, resp, c.cache, err = c.mechanism.Start(c)
 		c.state = c.state&^StepMask | AuthTextSent
 	case AuthTextSent:
-		more, resp, c.cache, err = c.mechanism.Next(c, decodedChallenge, c.cache)
+		more, resp, c.cache, err = c.mechanism.Next(c, challenge, c.cache)
 		c.state = c.state&^StepMask | ResponseSent
 	case ResponseSent:
-		more, resp, c.cache, err = c.mechanism.Next(c, decodedChallenge, c.cache)
+		more, resp, c.cache, err = c.mechanism.Next(c, challenge, c.cache)
 		c.state = c.state&^StepMask | ValidServerResponse
 	case ValidServerResponse:
-		more, resp, c.cache, err = c.mechanism.Next(c, decodedChallenge, c.cache)
+		more, resp, c.cache, err = c.mechanism.Next(c, challenge, c.cache)
 	}
 
 	if err != nil {
 		return false, nil, err
 	}
 
-	encodedResp := make([]byte, base64.StdEncoding.EncodedLen(len(resp)))
-	base64.StdEncoding.Encode(encodedResp, resp)
-
-	return more, encodedResp, err
+	return more, resp, err
 }
 
 // State returns the internal state of the SASL state machine.
