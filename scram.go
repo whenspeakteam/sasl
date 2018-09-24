@@ -180,8 +180,6 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 				authMessage = append(authMessage, ',')
 				authMessage = append(authMessage, clientFinalMessageWithoutProof...)
 
-				// TODO(ssw): Have a cache for HMAC and hi calculations
-
 				saltedPassword := pbkdf2.Key(password, salt, iter, fn().Size(), fn)
 
 				h := hmac.New(fn, saltedPassword)
