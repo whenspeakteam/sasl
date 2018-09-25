@@ -91,13 +91,10 @@ func scram(name string, fn func() hash.Hash) Mechanism {
 			if challenge == nil || len(challenge) == 0 {
 				return more, resp, cache, ErrInvalidChallenge
 			}
-			state := m.State()
 
-			// BUG(ssw): The server side of SCRAM is not yet implemented.
-			if state&Receiving == Receiving {
-				panic("sasl: Server side of SCRAM not yet implemented")
+			if m.State()&Receiving == Receiving {
+				panic("not yet implemented")
 			}
-
 			return scramClientNext(name, fn, m, challenge, data)
 		},
 	}

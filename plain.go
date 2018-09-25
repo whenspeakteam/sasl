@@ -43,7 +43,6 @@ var plain = Mechanism{
 		})) {
 			// Everything checks out as far as we know and the server should continue
 			// to authenticate the user.
-			resp = challenge
 			return
 		}
 
