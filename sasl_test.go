@@ -49,8 +49,11 @@ func getStepName(n *Negotiator) string {
 }
 
 var (
-	plainResp = []byte("Ursel\x00Kurt\x00xipj3plmq")
-	testNonce = []byte("fyko+d2lbbFgONRv9qkxdawL")
+	plainResp       = []byte("Ursel\x00Kurt\x00xipj3plmq")
+	testNonce       = []byte("fyko+d2lbbFgONRv9qkxdawL")
+	plainClientOpts = []Option{Credentials(func() ([]byte, []byte, []byte) {
+		return []byte("Kurt"), []byte("xipj3plmq"), []byte("Ursel")
+	})}
 )
 
 func acceptAll(_ *Negotiator) bool {
@@ -61,9 +64,7 @@ var saslTestCases = [...]saslTest{
 	0: {
 		skipServer: true,
 		mechanism:  plain,
-		clientOpts: []Option{Credentials(func() ([]byte, []byte, []byte) {
-			return []byte("Kurt"), []byte("xipj3plmq"), []byte("Ursel")
-		})},
+		clientOpts: plainClientOpts,
 		steps: []saslStep{
 			{resp: plainResp, more: false},
 			{challenge: nil, resp: nil, clientErr: true, more: false},
@@ -246,9 +247,7 @@ var saslTestCases = [...]saslTest{
 			}
 			return true
 		},
-		clientOpts: []Option{Credentials(func() ([]byte, []byte, []byte) {
-			return []byte("Kurt"), []byte("xipj3plmq"), []byte("Ursel")
-		})},
+		clientOpts: plainClientOpts,
 		steps: []saslStep{
 			{resp: plainResp, more: false},
 		},
@@ -259,9 +258,7 @@ var saslTestCases = [...]saslTest{
 			user, _, _ := n.Credentials()
 			return string(user) == "FAIL"
 		},
-		clientOpts: []Option{Credentials(func() ([]byte, []byte, []byte) {
-			return []byte("Kurt"), []byte("xipj3plmq"), []byte("Ursel")
-		})},
+		clientOpts: plainClientOpts,
 		steps: []saslStep{
 			{resp: plainResp, serverErr: true, more: false},
 		},
@@ -272,9 +269,7 @@ var saslTestCases = [...]saslTest{
 			_, pass, _ := n.Credentials()
 			return string(pass) == "FAIL"
 		},
-		clientOpts: []Option{Credentials(func() ([]byte, []byte, []byte) {
-			return []byte("Kurt"), []byte("xipj3plmq"), []byte("Ursel")
-		})},
+		clientOpts: plainClientOpts,
 		steps: []saslStep{
 			{resp: plainResp, serverErr: true, more: false},
 		},
@@ -285,18 +280,14 @@ var saslTestCases = [...]saslTest{
 			_, _, ident := n.Credentials()
 			return string(ident) == "FAIL"
 		},
-		clientOpts: []Option{Credentials(func() ([]byte, []byte, []byte) {
-			return []byte("Kurt"), []byte("xipj3plmq"), []byte("Ursel")
-		})},
+		clientOpts: plainClientOpts,
 		steps: []saslStep{
 			{resp: plainResp, serverErr: true, more: false},
 		},
 	},
 	12: {
-		mechanism: plain,
-		clientOpts: []Option{Credentials(func() ([]byte, []byte, []byte) {
-			return []byte("Kurt"), []byte("xipj3plmq"), []byte("Ursel")
-		})},
+		mechanism:  plain,
+		clientOpts: plainClientOpts,
 		steps: []saslStep{
 			{resp: plainResp, serverErr: true, more: false},
 		},
