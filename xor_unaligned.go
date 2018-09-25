@@ -4,7 +4,7 @@
 
 // This file was split out from Go's crypto/cipher/xor.go
 
-// +build 386 amd64 s390x
+// +build 386 amd64 s390x appengine
 
 package sasl
 
