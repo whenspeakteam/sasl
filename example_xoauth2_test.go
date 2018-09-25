@@ -27,8 +27,6 @@ var xoauth2 = sasl.Mechanism{
 		payload = append(payload, password...)
 		payload = append(payload, '\x01', '\x01')
 
-		// We do not need to Base64 encode the payload; the sasl.Negotiator will do
-		// that for us.
 		return false, payload, nil, nil
 	},
 	Next: func(m *sasl.Negotiator, challenge []byte, _ interface{}) (bool, []byte, interface{}, error) {
@@ -81,7 +79,7 @@ func Example_xOAUTH2() {
 	// This is the first step and we haven't received any challenge from the
 	// server yet.
 	more, resp, _ := c.Step(nil)
-	fmt.Printf("%v %s", more, resp)
+	fmt.Printf("%v %s", more, bytes.Replace(resp, []byte{1}, []byte{' '}, -1))
 
-	// Output: false dXNlcj1zb21ldXNlckBleGFtcGxlLmNvbQFhdXRoPUJlYXJlciB2RjlkZnQ0cW1UYzJOdmIzUmxja0JoZEhSaGRtbHpkR0V1WTI5dENnPT0BAQ==
+	// Output: false user=someuser@example.com auth=Bearer vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg==
 }

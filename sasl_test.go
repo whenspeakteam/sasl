@@ -6,7 +6,6 @@ package sasl
 
 import (
 	"crypto/sha1"
-	"encoding/base64"
 	"fmt"
 	"testing"
 )
@@ -51,9 +50,7 @@ func TestSASL(t *testing.T) {
 			// Reset the nonce to the one used by all of our test vectors.
 			test.machine.nonce = []byte("fyko+d2lbbFgONRv9qkxdawL")
 			for _, step := range test.steps {
-				more, resp, err := test.machine.Step(
-					[]byte(base64.StdEncoding.EncodeToString(step.challenge)),
-				)
+				more, resp, err := test.machine.Step(step.challenge)
 				switch {
 				case err != nil && test.machine.State()&Errored != Errored:
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
@@ -69,10 +66,9 @@ func TestSASL(t *testing.T) {
 					// There was an error, but we didn't expect one
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
 					t.Fatalf("Got unexpected SASL error: %v", err)
-				case base64.StdEncoding.EncodeToString(step.resp) != string(resp):
+				case string(step.resp) != string(resp):
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
-					decoded, _ := base64.StdEncoding.DecodeString(string(resp))
-					t.Fatalf("Got invalid response text:\nexpected `%s'\n     got `%s'", step.resp, decoded)
+					t.Fatalf("Got invalid response text:\nexpected `%s'\n     got `%s'", step.resp, resp)
 				case more != step.more:
 					t.Logf("Run %d, Step %s", run, getStepName(test.machine))
 					t.Fatalf("Got unexpected value for more: %v", more)
