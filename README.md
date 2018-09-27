@@ -5,6 +5,8 @@
 [![License](https://img.shields.io/badge/license-FreeBSD-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
 [![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/purple_img.png)](https://www.buymeacoffee.com/samwhited)
+[![Donate using Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/SamWhited)
+
 
 A Go library implementing the Simple Authentication and Security Layer (SASL) as
 defined by [RFC 4422][rfc4422].
