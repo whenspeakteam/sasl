@@ -1,0 +1,34 @@
+image: freebsd
+packages:
+  - go
+environment:
+  GO111MODULE: 'on'
+  PATH: "$PATH:`go env GOPATH`/bin"
+  GOVERSIONS: $(curl https://golang.org/dl/?mode=json | jq -r '.[] | .version')
+sources:
+  - https://github.com/mellium/sasl.git
+tasks:
+  - setup: |
+      for v in $GOVERSIONS; do
+        GO111MODULE=off go get -u golang.org/dl/$v
+        $v download
+      done
+
+      GO111MODULE=off go get -u golang.org/dl/gotip
+      gotip download
+  - stable: |
+      cd sasl/
+      for v in $GOVERSIONS; do
+        $v vet ./...
+        $v test -v -cover ./...
+      done
+  - tip: |
+      cd sasl/
+      gotip vet ./...
+      gotip test -v -cover ./...
+  - lint: |
+      cd sasl/
+      gofmt -s -l . && [ -z "$(gofmt -s -l .)" ]
+  - bench: |
+      cd sasl/
+      `echo $GOVERSIONS | awk '{print $1}'` test -run=NONE -bench . -benchmem ./...
