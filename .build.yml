@@ -5,6 +5,8 @@ environment:
   GO111MODULE: 'on'
   PATH: "$PATH:`go env GOPATH`/bin"
   GOVERSIONS: $(curl https://golang.org/dl/?mode=json | jq -r '.[] | .version')
+sources:
+  - https://github.com/mellium/sasl.git
 tasks:
   - setup: |
       for v in $GOVERSIONS; do
