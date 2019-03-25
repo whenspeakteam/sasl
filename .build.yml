@@ -14,6 +14,3 @@ tasks:
   - lint: |
       cd sasl/
       gofmt -s -l . && [ -z "$(gofmt -s -l .)" ]
-  - bench: |
-      cd sasl/
-      go test -run=NONE -bench . -benchmem ./...
