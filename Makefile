@@ -1,18 +1,21 @@
-PACKAGES=$$(go list ./... | grep -v '/vendor/')
+.POSIX:
+.SUFFIXES:
+
+GOFILES!=find . -name '*.go'
 
 .PHONEY: test
 test:
-	go test -cover $(PACKAGES)
+	go test -cover ./...
 
 .PHONEY: bench
 bench:
-	go test -cover -bench . -benchmem -run 'Benchmark.*' $(PACKAGES)
+	go test -cover -bench . -benchmem -run 'Benchmark.*' ./...
 
 .PHONEY: vet
 vet:
-	go vet $(PACKAGES)
+	go vet ./...
 
-deps.svg: *.go
+deps.svg: $(GOFILES)
 	(   echo "digraph G {"; \
 	go list -f '{{range .Imports}}{{printf "\t%q -> %q;\n" $$.ImportPath .}}{{end}}' \
 		$$(go list -f '{{join .Deps " "}}' .) .; \
