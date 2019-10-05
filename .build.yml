@@ -1,8 +1,6 @@
 image: freebsd/latest
 packages:
   - go
-environment:
-  PATH: "$PATH:`go env GOPATH`/bin"
 sources:
   - https://github.com/mellium/sasl.git
 tasks:
@@ -12,6 +10,8 @@ tasks:
 
       go get -u golang.org/x/lint/golint
       go get -u github.com/securego/gosec/cmd/gosec
+
+      echo 'export PATH=$(go env GOPATH)/bin:$PATH' >> ~/.buildenv
   - fmt: |
       cd sasl/
       gofmt -s -l . && [ -z "$(gofmt -s -l .)" ]
