@@ -184,22 +184,37 @@ func scramClientNext(name string, fn func() hash.Hash, m *Negotiator, challenge 
 		saltedPassword := pbkdf2.Key(password, salt, iter, fn().Size(), fn)
 
 		h := hmac.New(fn, saltedPassword)
-		h.Write(serverKeyInput)
+		_, err = h.Write(serverKeyInput)
+		if err != nil {
+			return
+		}
 		serverKey := h.Sum(nil)
 		h.Reset()
 
-		h.Write(clientKeyInput)
+		_, err = h.Write(clientKeyInput)
+		if err != nil {
+			return
+		}
 		clientKey := h.Sum(nil)
 
 		h = hmac.New(fn, serverKey)
-		h.Write(authMessage)
+		_, err = h.Write(authMessage)
+		if err != nil {
+			return
+		}
 		serverSignature := h.Sum(nil)
 
 		h = fn()
-		h.Write(clientKey)
+		_, err = h.Write(clientKey)
+		if err != nil {
+			return
+		}
 		storedKey := h.Sum(nil)
 		h = hmac.New(fn, storedKey)
-		h.Write(authMessage)
+		_, err = h.Write(authMessage)
+		if err != nil {
+			return
+		}
 		clientSignature := h.Sum(nil)
 		clientProof := make([]byte, len(clientKey))
 		xorBytes(clientProof, clientKey, clientSignature)

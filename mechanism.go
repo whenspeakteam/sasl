@@ -5,6 +5,7 @@
 package sasl
 
 import (
+	/* #nosec */
 	"crypto/sha1"
 	"crypto/sha256"
 	"errors"
